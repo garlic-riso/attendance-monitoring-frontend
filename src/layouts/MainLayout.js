@@ -19,6 +19,8 @@ const MainLayout = () => {
     { key: "7", label: "Sections", onClick: () => navigate("/sections") },
     { key: "8", label: "Faculty", onClick: () => navigate("/faculty") },
     { key: "9", label: "Subject", onClick: () => navigate("/subjects") },
+    { key: "10", label: "Students", onClick: () => navigate("/students") },
+    { key: "11", label: "Parents", onClick: () => navigate("/parents") },
   ];
 
   const userMenu = {

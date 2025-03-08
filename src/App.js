@@ -8,6 +8,8 @@ import FacultyManagementPage from "./pages/FacultyManagementPage";
 import MainLayout from "./layouts/MainLayout";
 import SchedulePage from "./pages/SchedulePage";
 import SubjectsPage from "./pages/SubjectsPage";
+import StudentManagementPage from "./pages/StudentManagementPage";
+import ParentManagementPage from "./pages/ParentManagementPage";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
           <Route path="/faculty" element={<FacultyManagementPage />} />
           <Route path="/schedules" element={<SchedulePage />} />
           <Route path="/subjects" element={<SubjectsPage />} />
+          <Route path="/students" element={<StudentManagementPage />} />
+          <Route path="/parents" element={<ParentManagementPage />} />
         </Route>
       </Routes>
     </Router>
