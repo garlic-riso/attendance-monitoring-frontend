@@ -1,9 +1,8 @@
 // src/pages/ParentManagementPage.js
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, Select, message } from "antd";
+import { Table, Button, Modal, Form, Input, message } from "antd";
 import axios from "../services/axiosInstance";
 
-const { Option } = Select;
 
 const ParentManagementPage = () => {
   const [parents, setParents] = useState([]);

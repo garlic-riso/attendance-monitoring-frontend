@@ -11,7 +11,7 @@ const MainLayout = () => {
 
   const menuItems = [
     { key: "1", label: "Dashboard", onClick: () => navigate("/users") },
-    { key: "2", label: "Attendance", onClick: () => navigate("/users") },
+    { key: "2", label: "Attendance", onClick: () => navigate("/attendance") },
     { key: "3", label: "Class List", onClick: () => navigate("/users") },
     { key: "4", label: "Reports", onClick: () => navigate("/users") },
     { key: "5", label: "Settings", onClick: () => navigate("/users") },

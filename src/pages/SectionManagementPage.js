@@ -8,6 +8,9 @@ const SectionManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [studentsModalVisible, setStudentsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
   // Fetch Sections
@@ -20,6 +23,17 @@ const SectionManagementPage = () => {
       message.error("Failed to load sections.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStudents = async (sectionId) => {
+    try {
+      const response = await axios.get(`/api/sections/${sectionId}/students`);
+      setStudents(response.data);
+      setStudentsModalVisible(true);
+    } catch (error) {
+      // console.log(error.message)
+      message.error(error.message);
     }
   };
 
@@ -70,6 +84,16 @@ const SectionManagementPage = () => {
     }
   };
 
+  const handleRemoveStudent = async (studentId) => {
+    try {
+      await axios.delete(`/api/sections/${selectedSection._id}/students/${studentId}`);
+      message.success("Student removed successfully.");
+      fetchStudents(selectedSection._id);
+    } catch (error) {
+      message.error("Failed to remove student.");
+    }
+  };
+
   return (
     <div>
       <Button type="primary" onClick={() => showModal(null)} style={{ marginBottom: 16 }}>
@@ -80,10 +104,6 @@ const SectionManagementPage = () => {
         rowKey="_id"
         loading={loading}
         columns={[
-          {
-            title: "Section ID",
-            dataIndex: "sectionId",
-          },
           {
             title: "Section",
             dataIndex: "name",
@@ -96,6 +116,12 @@ const SectionManagementPage = () => {
             title: "Actions",
             render: (text, record) => (
               <div>
+                <Button onClick={() => {
+                  setSelectedSection(record);
+                  fetchStudents(record._id);
+                }} style={{ marginRight: 8 }}>
+                  View Students
+                </Button>
                 <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
                   Edit
                 </Button>
@@ -136,6 +162,36 @@ const SectionManagementPage = () => {
             <Input type="number" />
           </Form.Item>
         </Form>
+      </Modal>
+      <Modal
+        title={`Students in ${selectedSection?.name}`}
+        open={studentsModalVisible}
+        onCancel={() => setStudentsModalVisible(false)}
+        footer={null}
+      >
+        <Table
+          dataSource={students}
+          rowKey="_id"
+          columns={[
+            {
+              title: "Name",
+              dataIndex: "name",
+              render: (_, record) => `${record.firstName} ${record.lastName}`,
+            },
+            {
+              title: "Email",
+              dataIndex: "email",
+            },
+            {
+              title: "Actions",
+              render: (_, record) => (
+                <Button danger onClick={() => handleRemoveStudent(record._id)}>
+                  Remove
+                </Button>
+              ),
+            },
+          ]}
+        />
       </Modal>
     </div>
   );

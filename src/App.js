@@ -10,6 +10,7 @@ import SchedulePage from "./pages/SchedulePage";
 import SubjectsPage from "./pages/SubjectsPage";
 import StudentManagementPage from "./pages/StudentManagementPage";
 import ParentManagementPage from "./pages/ParentManagementPage";
+import AttendancePage from "./pages/AttendancePage";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/subjects" element={<SubjectsPage />} />
           <Route path="/students" element={<StudentManagementPage />} />
           <Route path="/parents" element={<ParentManagementPage />} />
+          <Route path="/attendance" element={<AttendancePage />} />
         </Route>
       </Routes>
     </Router>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, Table, Button, Select, Form, message, Spin } from "antd";
 import axios from "../services/axiosInstance";
 import ScheduleModal from "../components/ScheduleModal";
@@ -23,65 +23,77 @@ const SchedulePage = () => {
     quarter: "First",
   });
 
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        setLoading(true);
-        const [{ data: defaultSchedule }, { data: sectionsData }, { data: subjectsData }, { data: teachersData }] = await Promise.all([
-          axios.get("/api/defaultSchedule"),
-          axios.get("/api/sections"),
-          axios.get("/api/subjects"),
-          axios.get("/api/teachers"),
-        ]);
+  const fetchInitialData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [defaultSchedule, sectionsData, subjectsData, teachersData] = await Promise.all([
+        axios.get("/api/defaultSchedule").then((res) => res.data),
+        axios.get("/api/sections").then((res) => res.data),
+        axios.get("/api/subjects").then((res) => res.data),
+        axios.get("/api/teachers").then((res) => res.data),
+      ]);
 
-        setFilters((prev) => ({
-          ...prev,
-          gradeLevel: defaultSchedule.sectionId || "",
-          academicYear: defaultSchedule.academicYear || "2024-2025",
-          quarter: defaultSchedule.quarter || "First",
-        }));
+      setFilters((prev) => ({
+        ...prev,
+        gradeLevel: defaultSchedule.sectionId || "",
+        academicYear: defaultSchedule.academicYear || "2024-2025",
+        quarter: defaultSchedule.quarter || "First",
+      }));
 
-        setSections(sectionsData);
-        setSubjects(subjectsData);
-        setTeachers(teachersData);
-      } catch {
-        message.error("Failed to initialize data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeData();
+      setSections(sectionsData);
+      setSubjects(subjectsData);
+      setTeachers(teachersData);
+    } catch {
+      message.error("Failed to initialize data.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => {
-    fetchSchedules();
-  }, [filters]);
-
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { gradeLevel, academicYear, quarter } = filters;
-      const { data: schedulesData } = await axios.get("/api/schedules", { params: { sectionID: gradeLevel, academicYear, quarter } });
-      setSchedules(schedulesData.reduce((acc, schedule) => ({ ...acc, [schedule.week]: [...(acc[schedule.week] || []), schedule] }), {}));
+      const schedulesData = await axios.get("/api/schedules", {
+        params: { sectionID: gradeLevel, academicYear, quarter },
+      }).then((res) => res.data);
+
+      setSchedules(
+        schedulesData.reduce((acc, schedule) => ({
+          ...acc,
+          [schedule.week]: [...(acc[schedule.week] || []), schedule], // Use API response directly
+        }), {})
+      );
     } catch {
       message.error("Failed to fetch schedules.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
-  const formatTime = (time) => {
-    const [hour, minute] = time.split(":");
-    return `${((+hour % 12) || 12)}:${minute} ${+hour >= 12 ? "PM" : "AM"}`;
-  };
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [filters, fetchSchedules]);
+
 
   const handleEdit = (record) => {
     setEditingRecord(record);
-    form.setFieldsValue(record);
+  
+    form.setFieldsValue({
+      ...record,
+      subjectID: record.subjectID?._id || record.subjectID || null, 
+      teacherID: record.teacherID?._id || record.teacherID || null,
+    });
+  
     setIsCreateMode(false);
     setIsModalVisible(true);
   };
+  
+  
 
   const handleCreate = () => {
     form.resetFields();
@@ -102,19 +114,21 @@ const SchedulePage = () => {
 
   const handleSave = async (values) => {
     try {
-      const request = isCreateMode ? axios.post("/api/schedules", values) : axios.put(`/api/schedules/${editingRecord.key}`, values);
-      await request;
+      if (isCreateMode) {
+        await axios.post("/api/schedules", values);
+      } else {
+        await axios.put(`/api/schedules/${editingRecord.key}`, values);
+      }
       message.success(isCreateMode ? "Schedule created successfully." : "Schedule updated successfully.");
       fetchSchedules();
       setIsModalVisible(false);
-    } catch {
-      message.error("Failed to save schedule.");
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to save schedule.";
+      message.error(errorMessage);
     }
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
+  const handleFilterChange = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
 
   return (
     <div style={{ padding: 20 }}>
@@ -140,10 +154,13 @@ const SchedulePage = () => {
           children: (
             <Table
               bordered
-              dataSource={list.map((item, index) => ({ ...item, key: item._id || index }))}
+              dataSource={list.map((item, index) => ({
+                ...item,
+                key: item._id || index,
+              }))}
               columns={[
-                { title: "Start", dataIndex: "startTime", key: "startTime", render: formatTime },
-                { title: "End", dataIndex: "endTime", key: "endTime", render: formatTime },
+                { title: "Start", dataIndex: "startTime", key: "startTime" },
+                { title: "End", dataIndex: "endTime", key: "endTime" },
                 { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
                 { title: "Class Mode", dataIndex: "classMode", key: "classMode" },
                 { title: "Room", dataIndex: "room", key: "room" },
@@ -158,9 +175,18 @@ const SchedulePage = () => {
               pagination={false}
             />
           ),
-        }))}
-      />)}
-      <ScheduleModal visible={isModalVisible} onCancel={() => setIsModalVisible(false)} onSave={handleSave} form={form} isCreateMode={isCreateMode} subjects={subjects} teachers={teachers} filters={filters} />
+        }))} />
+      )}
+      <ScheduleModal
+        visible={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        onSave={handleSave}
+        form={form}
+        isCreateMode={isCreateMode}
+        subjects={subjects}
+        teachers={teachers}
+        filters={filters}
+      />
     </div>
   );
 };
