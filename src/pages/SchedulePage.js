@@ -129,6 +129,9 @@ const SchedulePage = () => {
   };
 
   const handleFilterChange = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+  const currentSection = sections.find((s) => s._id === filters.gradeLevel);
+  const sectionName = currentSection ? `${currentSection.grade} - ${currentSection.name}` : "";
+
 
   return (
     <div style={{ padding: 20 }}>
@@ -146,7 +149,7 @@ const SchedulePage = () => {
           </Select>
         ))}
       </div>
-      <Button type="primary" onClick={handleCreate} style={{ marginBottom: 16 }}>Create Schedule</Button>
+      <Button type="primary" onClick={handleCreate} style={{ marginBottom: 16 }}>Add Schedule</Button>
       {loading ? <Spin size="large" /> : (
         <Tabs activeKey={currentTab} onChange={setCurrentTab} items={Object.entries(schedules).map(([day, list]) => ({
           label: day,
@@ -186,6 +189,7 @@ const SchedulePage = () => {
         subjects={subjects}
         teachers={teachers}
         filters={filters}
+        sectionName={sectionName}
       />
     </div>
   );

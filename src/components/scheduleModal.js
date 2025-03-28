@@ -12,22 +12,24 @@ const ScheduleModal = ({
   subjects,
   teachers,
   filters,
+  sectionName,
 }) => {
   
   useEffect(() => {
-    if (!isCreateMode) {
-      form.setFieldsValue((prevValues) => ({
-        ...prevValues,
-        sectionID: filters.gradeLevel,
-        academicYear: filters.academicYear,
-        quarter: filters.quarter,
-      }));
-    }
-  }, [form, isCreateMode, filters]);
+    form.setFieldsValue({
+      sectionID: filters.gradeLevel,
+      academicYear: filters.academicYear,
+      quarter: filters.quarter,
+    });
+  }, [form, filters]);
 
   return (
     <Modal
-      title={isCreateMode ? "Create Schedule" : "Edit Schedule"}
+      title={
+        isCreateMode
+        ? `Add Schedule for ${sectionName} - ${filters.quarter} Quarter - ${filters.academicYear}`
+        : "Edit Schedule"
+      }
       open={visible}
       onCancel={onCancel}
       footer={null}
