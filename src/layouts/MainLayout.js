@@ -3,32 +3,46 @@ import { Layout, Menu, Dropdown, Avatar, Space } from "antd";
 import { DownOutlined, UserOutlined } from "@ant-design/icons";
 import { Outlet, useNavigate } from "react-router-dom";
 import "../styles/MainLayout.css";
+import { hasAccess } from "../utils/permissions";
+import { logout } from "../utils/auth";
 
 const { Header, Sider, Content } = Layout;
 
 const MainLayout = () => {
   const navigate = useNavigate();
 
-  const menuItems = [
-    { key: "1", label: "Dashboard", onClick: () => navigate("/users") },
-    { key: "2", label: "Attendance", onClick: () => navigate("/attendance") },
-    { key: "3", label: "Class List", onClick: () => navigate("/users") },
-    { key: "4", label: "Reports", onClick: () => navigate("/users") },
-    { key: "5", label: "Settings", onClick: () => navigate("/users") },
-    { key: "6", label: "Schedule", onClick: () => navigate("/schedules") },
-    { key: "7", label: "Sections", onClick: () => navigate("/sections") },
-    { key: "8", label: "Faculty", onClick: () => navigate("/faculty") },
-    { key: "9", label: "Subject", onClick: () => navigate("/subjects") },
-    { key: "10", label: "Students", onClick: () => navigate("/students") },
-    { key: "11", label: "Parents", onClick: () => navigate("/parents") },
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  const rawMenuItems = [
+    { key: "1", label: "Dashboard", route: "/", resource: "dashboard" },
+    { key: "2", label: "User Management", route: "/users", resource: "users" },
+    { key: "3", label: "Attendance", route: "/attendance", resource: "attendance" },
+    { key: "4", label: "Settings", route: "/settings", resource: "settings" },
+    { key: "5", label: "Schedules", route: "/schedules", resource: "schedules" },
+    { key: "6", label: "Sections", route: "/sections", resource: "sections" },
+    { key: "7", label: "Subjects", route: "/subjects", resource: "subjects" },
+    { key: "8", label: "Faculty", route: "/faculty", resource: "faculty" },
+    { key: "9", label: "Students", route: "/students", resource: "students" },
+    { key: "10", label: "Parents", route: "/parents", resource: "parents" },
   ];
+
+  const menuItems = rawMenuItems
+    .filter(item => !item.resource || hasAccess(user?.role, item.resource))
+    .map(item => ({
+      key: item.key,
+      label: item.label,
+      onClick: () => navigate(item.route),
+    }));
 
   const userMenu = {
     items: [
       {
         key: "logout",
         label: "Logout",
-        onClick: () => navigate("/login"),
+        onClick: () => {
+          logout();
+          navigate("/login");
+        },
       },
     ],
   };
