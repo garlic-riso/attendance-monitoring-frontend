@@ -37,16 +37,16 @@ const StudentFormModal = ({ visible, onCancel, onSubmit, form, parents, sections
             <Option value="Face-to-Face">Face-to-Face</Option>
           </Select>
         </Form.Item>
-        <Form.Item name="parent" label="Parent" rules={[{ required: true }]}>
+        <Form.Item name="parentID" label="Parent" rules={[{ required: true }]}>
           <Select showSearch>
             {parents.map((parent) => (
               <Option key={parent._id} value={parent._id}>
-                {`${parent.firstName} ${parent.middleName || ""} ${parent.lastName}`}
+                {`${parent.firstName} ${parent.lastName}`}
               </Option>
             ))}
           </Select>
         </Form.Item>
-        <Form.Item name="section" label="Section" rules={[{ required: true }]}>
+        <Form.Item name="sectionID" label="Section" rules={[{ required: true }]}>
           <Select>
             {sections.map((section) => (
               <Option key={section._id} value={section._id}>

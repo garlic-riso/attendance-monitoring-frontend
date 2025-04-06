@@ -1,6 +1,9 @@
 // src/pages/ParentManagementPage.js
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, message } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import { Upload } from "antd";
+import * as XLSX from "xlsx";
 import axios from "../services/axiosInstance";
 
 
@@ -69,11 +72,52 @@ const ParentManagementPage = () => {
     }
   };
 
+  const handleBulkUpload = async (file) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  
+      try {
+        const response = await axios.post("/api/parents/bulk-import", jsonData);
+        message.success("Bulk import successful.");
+        fetchParents();
+      } catch (error) {
+        if (error.response?.data?.errors) {
+          const errorList = error.response.data.errors.map(
+            (err, index) => `Row ${index + 2}: ${err}`
+          );
+          Modal.error({
+            title: "Import Errors",
+            content: <ul>{errorList.map((e, i) => <li key={i}>{e}</li>)}</ul>,
+            width: 600,
+          });
+        } else {
+          message.error("Failed to import.");
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return false;
+  };
+  
+
   return (
     <div>
-      <Button type="primary" onClick={() => showModal(null)} style={{ marginBottom: 16 }}>
-        Add Parent
-      </Button>
+      <div style={{ display: "flex", gap: "8px", marginBottom: 16 }}>
+        <Button type="primary" onClick={() => showModal(null)}>
+          Add Parent
+        </Button>
+        <Upload
+          accept=".csv, .xlsx"
+          showUploadList={false}
+          beforeUpload={(file) => handleBulkUpload(file)}
+        >
+          <Button icon={<UploadOutlined />}>Bulk Import</Button>
+        </Upload>
+      </div>
       <Table
         dataSource={parents}
         rowKey="_id"
