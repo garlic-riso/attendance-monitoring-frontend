@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, Upload, message } from "antd";
+import { Table, Button, Modal, Form, Input, Upload, message, Switch, Select } from "antd";
 import * as XLSX from "xlsx";
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "../services/axiosInstance";
@@ -9,6 +9,7 @@ const FacultyManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("active");
   const [form] = Form.useForm();
 
   // Fetch Teachers
@@ -46,17 +47,6 @@ const FacultyManagementPage = () => {
       form.resetFields();
     } catch (error) {
       message.error("Failed to save teacher.");
-    }
-  };
-
-  // Handle Delete
-  const handleDelete = async (teacherId) => {
-    try {
-      await axios.delete(`/api/teachers/${teacherId}`);
-      message.success("Teacher deleted successfully.");
-      fetchTeachers();
-    } catch (error) {
-      message.error("Failed to delete teacher.");
     }
   };
 
@@ -103,16 +93,49 @@ const FacultyManagementPage = () => {
     }
   };
 
+  const handleToggleStatus = async (faculty) => {
+    try {
+      await axios.put(`/api/teachers/${faculty._id}`, {
+        isActive: !faculty.isActive,
+      });
+      fetchTeachers();
+      message.success("Status updated.");
+    } catch (error) {
+      message.error("Failed to update status.");
+    }
+  };
+
   return (
     <div>
-      <div style={{ display: "flex", gap: "8px", marginBottom: 16 }}>
-        <Button type="primary" onClick={() => showModal(null)}>Add Teacher</Button>
-        <Upload accept=".csv, .xlsx" showUploadList={false} beforeUpload={handleBulkImport}>
-          <Button icon={<UploadOutlined />}>Bulk Import</Button>
-        </Upload>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Button type="primary" onClick={() => showModal(null)}>Add Teacher</Button>
+          <Upload accept=".csv, .xlsx" showUploadList={false} beforeUpload={handleBulkImport}>
+            <Button icon={<UploadOutlined />}>Bulk Import</Button>
+          </Upload>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 500 }}>Filter by Status:</span>
+          <Select
+            value={filterStatus}
+            onChange={setFilterStatus}
+            style={{ width: 150 }}
+          >
+            <Select.Option value="all">All</Select.Option>
+            <Select.Option value="active">Active</Select.Option>
+            <Select.Option value="inactive">Inactive</Select.Option>
+          </Select>
+        </div>
       </div>
+
+
       <Table
-        dataSource={teachers}
+        dataSource={
+          filterStatus === "all"
+            ? teachers
+            : teachers.filter(t => filterStatus === "active" ? t.isActive : !t.isActive)
+        }
         rowKey="_id"
         loading={loading}
         columns={[
@@ -138,11 +161,23 @@ const FacultyManagementPage = () => {
                 >
                   Edit
                 </Button>
-                <Button danger onClick={() => handleDelete(record._id)}>
-                  Delete
-                </Button>
               </div>
             ),
+            fixed: "right",
+            width: 100,
+          },
+          {
+            title: "Status",
+            render: (_, record) => (
+              <Switch
+                checked={record.isActive}
+                onChange={() => handleToggleStatus(record)}
+                checkedChildren="Active"
+                unCheckedChildren="Inactive"
+              />
+            ),
+            fixed: "right",
+            width: 120,
           },
         ]}
       />

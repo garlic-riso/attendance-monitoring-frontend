@@ -87,7 +87,7 @@ const ScheduleModal = ({
         </Form.Item>
 
         <Form.Item label="Teacher" name="teacherID" rules={[{ required: true, message: "Please select a teacher" }]}>
-          <Select placeholder="Select a teacher">
+          <Select placeholder="Select a teacher" showSearch optionFilterProp="children">
             {teachers.map((teacher) => (
               <Option key={teacher._id} value={teacher._id}>
                 {teacher.name}

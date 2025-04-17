@@ -38,14 +38,22 @@ const StudentFormModal = ({ visible, onCancel, onSubmit, form, parents, sections
           </Select>
         </Form.Item>
         <Form.Item name="parentID" label="Parent" rules={[{ required: true }]}>
-          <Select showSearch>
-            {parents.map((parent) => (
-              <Option key={parent._id} value={parent._id}>
-                {`${parent.firstName} ${parent.lastName}`}
+          <Select showSearch optionFilterProp="children">
+            {editingStudent?.parentID && (
+              <Option key={editingStudent.parentID._id} value={editingStudent.parentID._id} disabled>
+                {`${editingStudent.parentID.firstName} ${editingStudent.parentID.lastName}`} (Inactive)
               </Option>
-            ))}
+            )}
+            {parents
+              .filter(p => !editingStudent?.parentID || p._id !== editingStudent.parentID._id)
+              .map((parent) => (
+                <Option key={parent._id} value={parent._id}>
+                  {`${parent.firstName} ${parent.lastName}`}
+                </Option>
+              ))}
           </Select>
         </Form.Item>
+
         <Form.Item name="sectionID" label="Section" rules={[{ required: true }]}>
           <Select>
             {sections.map((section) => (
@@ -53,12 +61,6 @@ const StudentFormModal = ({ visible, onCancel, onSubmit, form, parents, sections
                 {`Grade ${section.grade} - ${section.name}`}
               </Option>
             ))}
-          </Select>
-        </Form.Item>
-        <Form.Item name="status" label="Status" rules={[{ required: true }]}>
-          <Select>
-            <Option value="Active">Active</Option>
-            <Option value="Inactive">Inactive</Option>
           </Select>
         </Form.Item>
       </Form>

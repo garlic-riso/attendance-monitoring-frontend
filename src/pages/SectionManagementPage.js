@@ -1,7 +1,11 @@
 // src/pages/SectionManagementPage.js
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, message } from "antd";
+import { Table, Button, Modal, Form, Input, message, Switch, Select } from "antd";
 import axios from "../services/axiosInstance";
+import { Upload } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import * as XLSX from "xlsx";
+
 
 const SectionManagementPage = () => {
   const [sections, setSections] = useState([]);
@@ -11,6 +15,7 @@ const SectionManagementPage = () => {
   const [selectedSection, setSelectedSection] = useState(null);
   const [students, setStudents] = useState([]);
   const [studentsModalVisible, setStudentsModalVisible] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all");
   const [form] = Form.useForm();
 
   // Fetch Sections
@@ -32,8 +37,8 @@ const SectionManagementPage = () => {
       setStudents(response.data);
       setStudentsModalVisible(true);
     } catch (error) {
-      // console.log(error.message)
-      message.error(error.message);
+      const errorMsg = error.response?.data?.message || "Failed to fetch students.";
+      message.error(errorMsg);
     }
   };
 
@@ -62,17 +67,6 @@ const SectionManagementPage = () => {
     }
   };
 
-  // Handle Delete
-  const handleDelete = async (sectionId) => {
-    try {
-      await axios.delete(`/api/sections/${sectionId}`);
-      message.success("Section deleted successfully.");
-      fetchSections();
-    } catch (error) {
-      message.error("Failed to delete section.");
-    }
-  };
-
   // Show Modal for Add/Edit
   const showModal = (section) => {
     setEditingSection(section || null);
@@ -94,13 +88,83 @@ const SectionManagementPage = () => {
     }
   };
 
+  const handleBulkImport = async (file) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  
+      try {
+        await axios.post("/api/sections/bulk-import", jsonData);
+        message.success("Bulk import successful.");
+        fetchSections();
+      } catch (error) {
+        if (error.response?.data?.errors) {
+          const errorList = error.response.data.errors;
+          Modal.error({
+            title: "Import Errors",
+            content: (
+              <ul style={{ maxHeight: 200, overflowY: "auto", paddingLeft: 16 }}>
+                {errorList.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            ),
+            width: 600,
+          });
+        } else {
+          message.error("Failed to import.");
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return false;
+  };
+  
+
+
+  const handleToggleStatus = async (section) => {
+    try {
+      await axios.put(`/api/sections/${section._id}`, {
+        isActive: !section.isActive,
+      });
+      fetchSections();
+      message.success("Section status updated.");
+    } catch (error) {
+      message.error("Failed to update status.");
+    }
+  };
+
   return (
     <div>
-      <Button type="primary" onClick={() => showModal(null)} style={{ marginBottom: 16 }}>
-        Add Section
-      </Button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button type="primary" onClick={() => showModal(null)}>
+            Add Section
+          </Button>
+          <Upload accept=".csv, .xlsx" showUploadList={false} beforeUpload={handleBulkImport}>
+            <Button icon={<UploadOutlined />}>Bulk Import</Button>
+          </Upload>
+        </div>
+        <div>
+          <span style={{ marginRight: 8 }}>Filter by Status:</span>
+          <Select value={filterStatus} onChange={setFilterStatus} style={{ width: 150 }}>
+            <Select.Option value="all">All</Select.Option>
+            <Select.Option value="active">Active</Select.Option>
+            <Select.Option value="inactive">Inactive</Select.Option>
+          </Select>
+        </div>
+      </div>
+
+
       <Table
-        dataSource={sections}
+        dataSource={
+          filterStatus === "all"
+            ? sections
+            : sections.filter(s => filterStatus === "active" ? s.isActive : !s.isActive)
+        }
         rowKey="_id"
         loading={loading}
         columns={[
@@ -125,11 +189,23 @@ const SectionManagementPage = () => {
                 <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
                   Edit
                 </Button>
-                <Button danger onClick={() => handleDelete(record._id)}>
-                  Delete
-                </Button>
               </div>
             ),
+            fixed: "right",
+            width: 300,
+          },
+          {
+            title: "Status",
+            render: (_, record) => (
+              <Switch
+                checked={record.isActive}
+                onChange={() => handleToggleStatus(record)}
+                checkedChildren="Active"
+                unCheckedChildren="Inactive"
+              />
+            ),
+            fixed: "right",
+            width: 120,
           },
         ]}
       />
@@ -140,13 +216,6 @@ const SectionManagementPage = () => {
         onOk={() => form.submit()}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item
-            name="sectionId"
-            label="Section ID"
-            rules={[{ required: true, message: "Please enter the section ID" }]}
-          >
-            <Input />
-          </Form.Item>
           <Form.Item
             name="name"
             label="Section Name"
@@ -180,7 +249,7 @@ const SectionManagementPage = () => {
             },
             {
               title: "Email",
-              dataIndex: "email",
+              dataIndex: "emailAddress",
             },
             {
               title: "Actions",

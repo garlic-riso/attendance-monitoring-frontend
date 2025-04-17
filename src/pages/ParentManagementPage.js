@@ -1,6 +1,6 @@
 // src/pages/ParentManagementPage.js
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, message } from "antd";
+import { Table, Button, Modal, Form, Input, message, Select, Switch } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { Upload } from "antd";
 import * as XLSX from "xlsx";
@@ -12,6 +12,7 @@ const ParentManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingParent, setEditingParent] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("active");
   const [form] = Form.useForm();
 
   // Fetch Parents
@@ -50,16 +51,7 @@ const ParentManagementPage = () => {
     }
   };
 
-  // Handle Delete
-  const handleDelete = async (parentId) => {
-    try {
-      await axios.delete(`/api/parents/${parentId}`);
-      message.success("Parent deleted successfully.");
-      fetchParents();
-    } catch (error) {
-      message.error("Failed to delete parent.");
-    }
-  };
+
 
   // Show Modal for Add/Edit
   const showModal = (parent) => {
@@ -71,6 +63,19 @@ const ParentManagementPage = () => {
       form.resetFields();
     }
   };
+
+  const handleToggleStatus = async (parent) => {
+    try {
+      await axios.put(`/api/parents/${parent._id}`, {
+        isActive: !parent.isActive,
+      });
+      fetchParents();
+      message.success("Status updated.");
+    } catch (error) {
+      message.error("Failed to update status.");
+    }
+  };
+  
 
   const handleBulkUpload = async (file) => {
     const reader = new FileReader();
@@ -106,20 +111,44 @@ const ParentManagementPage = () => {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: "8px", marginBottom: 16 }}>
-        <Button type="primary" onClick={() => showModal(null)}>
-          Add Parent
-        </Button>
-        <Upload
-          accept=".csv, .xlsx"
-          showUploadList={false}
-          beforeUpload={(file) => handleBulkUpload(file)}
-        >
-          <Button icon={<UploadOutlined />}>Bulk Import</Button>
-        </Upload>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Button type="primary" onClick={() => showModal(null)}>
+            Add Parent
+          </Button>
+          <Upload
+            accept=".csv, .xlsx"
+            showUploadList={false}
+            beforeUpload={(file) => handleBulkUpload(file)}
+          >
+            <Button icon={<UploadOutlined />}>Bulk Import</Button>
+          </Upload>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 500 }}>Filter by Status:</span>
+          <Select value={filterStatus} onChange={setFilterStatus} style={{ width: 150 }}>
+            <Select.Option value="all">All</Select.Option>
+            <Select.Option value="active">Active</Select.Option>
+            <Select.Option value="inactive">Inactive</Select.Option>
+          </Select>
+        </div>
       </div>
+
       <Table
-        dataSource={parents}
+        dataSource={
+          filterStatus === "all"
+            ? parents
+            : parents.filter(p => filterStatus === "active" ? p.isActive : !p.isActive)
+        }
         rowKey="_id"
         loading={loading}
         columns={[
@@ -127,7 +156,6 @@ const ParentManagementPage = () => {
           { title: "Last Name", dataIndex: "lastName" },
           { title: "Email", dataIndex: "emailAddress" },
           { title: "Contact Number", dataIndex: "contactNumber" },
-          { title: "Status", dataIndex: "status" },
           {
             title: "Actions",
             render: (_, record) => (
@@ -135,10 +163,18 @@ const ParentManagementPage = () => {
                 <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
                   Edit
                 </Button>
-                <Button danger onClick={() => handleDelete(record._id)}>
-                  Delete
-                </Button>
               </div>
+            ),
+          },
+          {
+            title: "Status",
+            render: (_, record) => (
+              <Switch
+                checked={record.isActive}
+                onChange={() => handleToggleStatus(record)}
+                checkedChildren="Active"
+                unCheckedChildren="Inactive"
+              />
             ),
           },
         ]}

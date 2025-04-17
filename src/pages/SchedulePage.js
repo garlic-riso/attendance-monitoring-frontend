@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Tabs, Table, Button, Select, Form, message, Spin } from "antd";
 import axios from "../services/axiosInstance";
 import ScheduleModal from "../components/ScheduleModal";
@@ -114,6 +114,12 @@ const SchedulePage = () => {
 
   const handleSave = async (values) => {
     try {
+      const selectedTeacher = teachers.find(t => String(t._id) === String(values.teacherID));
+      if (selectedTeacher && !selectedTeacher.isActive) {
+        message.error("You cannot assign an inactive faculty.");
+        return;
+      }
+
       if (isCreateMode) {
         await axios.post("/api/schedules", values);
       } else {
@@ -132,13 +138,73 @@ const SchedulePage = () => {
   const currentSection = sections.find((s) => s._id === filters.gradeLevel);
   const sectionName = currentSection ? `${currentSection.grade} - ${currentSection.name}` : "";
 
+  // Include active items + used inactive ones
+  const visibleSections = useMemo(() => {
+    return sections.filter((s) => {
+      const used = Object.values(schedules)
+        .flat()
+        .some((sched) => (sched.sectionID?._id || sched.sectionID) === s._id);
+      return s.isActive || used;
+    });
+  }, [sections, schedules]);
+  
+  const visibleTeachers = useMemo(() => {
+    const assignedTeacherIDs = new Set(
+      Object.values(schedules)
+        .flat()
+        .map((sched) => String(sched.teacherID?._id || sched.teacherID))
+    );
+  
+    return teachers.filter((t) => t.isActive || assignedTeacherIDs.has(String(t._id)));
+  }, [teachers, schedules]);
+  
+  
+  const teacherOptions = useMemo(() => {
+    if (!editingRecord) return visibleTeachers;
+  
+    const editingTeacherID =
+      editingRecord.teacherID?._id || editingRecord.teacherID;
+  
+    // Only include inactive teacher if it's still assigned in the current schedule
+    const isStillAssigned = Object.values(schedules)
+      .flat()
+      .some((sched) => String(sched.teacherID?._id || sched.teacherID) === String(editingTeacherID));
+  
+    if (!isStillAssigned) return visibleTeachers;
+  
+    const original = teachers.find((t) => String(t._id) === String(editingTeacherID));
+  
+    return visibleTeachers.some((t) => t._id === editingTeacherID)
+      ? visibleTeachers
+      : [...visibleTeachers, original];
+  }, [visibleTeachers, teachers, editingRecord, schedules]);
+  
+  const visibleSubjects = useMemo(() => {
+    const usedSubjectIDs = new Set(
+      Object.values(schedules)
+        .flat()
+        .map((sched) => String(sched.subjectID?._id || sched.subjectID))
+    );
+  
+    return subjects.filter(
+      (s) => s.isActive || usedSubjectIDs.has(String(s._id))
+    );
+  }, [subjects, schedules]);
+  
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Grade-level Schedule</h1>
       <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
         {[
-          { key: "gradeLevel", placeholder: "Grade Level & Section", options: sections.map((s) => ({ value: s._id, label: `${s.grade} - ${s.name}` })) },
+          {
+            key: "gradeLevel",
+            placeholder: "Grade Level & Section",
+            options: visibleSections.map((s) => ({
+              value: s._id,
+              label: `${s.grade} - ${s.name}${s.isActive ? "" : " (Inactive)"}`
+            }))
+          },
           { key: "academicYear", placeholder: "Academic Year", options: [{ value: "2024-2025", label: "2024-2025" }] },
           { key: "quarter", placeholder: "Quarter", options: ["First", "Second", "Third", "Fourth"].map((q) => ({ value: q, label: q })) },
         ].map(({ key, placeholder, options }) => (
@@ -186,8 +252,8 @@ const SchedulePage = () => {
         onSave={handleSave}
         form={form}
         isCreateMode={isCreateMode}
-        subjects={subjects}
-        teachers={teachers}
+        subjects={visibleSubjects}
+        teachers={teacherOptions}
         filters={filters}
         sectionName={sectionName}
       />

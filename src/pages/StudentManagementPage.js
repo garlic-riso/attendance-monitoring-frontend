@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Table, Button, message, Form } from "antd";
+import { Table, Button, message, Form, Switch, Select } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "../services/axiosInstance";
 import dayjs from "dayjs";
@@ -13,6 +13,7 @@ const StudentManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("all");
   const [form] = Form.useForm();
 
   // Fetch Data
@@ -21,8 +22,8 @@ const StudentManagementPage = () => {
     try {
       const [studentsRes, parentsRes, sectionsRes] = await Promise.all([
         axios.get("/api/students"),
-        axios.get("/api/parents"),
-        axios.get("/api/sections"),
+        axios.get("/api/parents?active=true"),
+        axios.get("/api/sections?active=true"),
       ]);
       setStudents(studentsRes.data);
       setParents(parentsRes.data);
@@ -37,6 +38,15 @@ const StudentManagementPage = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (editingStudent && editingStudent.sectionID) {
+      const exists = sections.some(sec => sec._id === editingStudent.sectionID._id);
+      if (!exists) {
+        setSections(prev => [...prev, editingStudent.sectionID]);
+      }
+    }
+  }, [editingStudent, sections]);
 
   // Handle Save (Add or Update)
   const handleSave = async (values) => {
@@ -53,17 +63,6 @@ const StudentManagementPage = () => {
       handleModalClose();
     } catch (error) {
       message.error("Failed to save student.");
-    }
-  };
-
-  // Handle Delete
-  const handleDelete = async (studentId) => {
-    try {
-      await axios.delete(`/api/students/${studentId}`);
-      message.success("Student deleted successfully.");
-      fetchData();
-    } catch (error) {
-      message.error("Failed to delete student.");
     }
   };
 
@@ -135,12 +134,23 @@ const StudentManagementPage = () => {
     reader.readAsBinaryString(file);
   };
 
+  const handleToggleStatus = async (student) => {
+    try {
+      await axios.put(`/api/students/${student._id}`, {
+        isActive: !student.isActive,
+      });
+      message.success("Status updated.");
+      fetchData();
+    } catch (error) {
+      message.error("Failed to update status.");
+    }
+  };
+
   const columns = [
     { title: "First Name", dataIndex: "firstName" },
     { title: "Last Name", dataIndex: "lastName" },
     { title: "Email", dataIndex: "emailAddress" },
     { title: "Program", dataIndex: "program" },
-    { title: "Status", dataIndex: "status" },
     {
       title: "Actions",
       render: (_, record) => (
@@ -148,35 +158,71 @@ const StudentManagementPage = () => {
           <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
             Edit
           </Button>
-          <Button danger onClick={() => handleDelete(record._id)}>
-            Delete
-          </Button>
         </div>
+      ),
+    },
+    {
+      title: "Active",
+      dataIndex: "isActive",
+      render: (value, record) => (
+        <Switch
+          checked={record.isActive}
+          onChange={() => handleToggleStatus(record)}
+          checkedChildren="Active"
+          unCheckedChildren="Inactive"
+        />
       ),
     },
   ];
 
   return (
     <div>
-      <Button type="primary" onClick={() => showModal()} style={{ marginBottom: 16 }}>
-        Add Student
-      </Button>
-      <input
-        type="file"
-        accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-        style={{ display: "none" }}
-        id="bulkUpload"
-        onChange={handleFileUpload}
-      />
-      <Button
-        icon={<UploadOutlined />}
-        onClick={() => document.getElementById("bulkUpload").click()}
-        style={{ marginLeft: 8 }}
-      >
-        Bulk Import
-      </Button>
-      <Table dataSource={students} rowKey="_id" loading={loading} columns={columns} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button type="primary" onClick={() => showModal()}>
+            Add Student
+          </Button>
+          <input
+            type="file"
+            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+            style={{ display: "none" }}
+            id="bulkUpload"
+            onChange={handleFileUpload}
+          />
+          <Button
+            icon={<UploadOutlined />}
+            onClick={() => document.getElementById("bulkUpload").click()}
+          >
+            Bulk Import
+          </Button>
+        </div>
 
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 500 }}>Filter by Status:</span>
+          <Select
+            value={filterStatus}
+            onChange={setFilterStatus}
+            style={{ width: 150 }}
+          >
+            <Select.Option value="all">All</Select.Option>
+            <Select.Option value="active">Active</Select.Option>
+            <Select.Option value="inactive">Inactive</Select.Option>
+          </Select>
+        </div>
+      </div>
+
+      <Table
+        dataSource={
+          filterStatus === "all"
+            ? students
+            : students.filter(s =>
+                filterStatus === "active" ? s.isActive : !s.isActive
+              )
+        }
+        rowKey="_id"
+        loading={loading}
+        columns={columns}
+      />
       <StudentFormModal
         visible={isModalVisible}
         onCancel={handleModalClose}
