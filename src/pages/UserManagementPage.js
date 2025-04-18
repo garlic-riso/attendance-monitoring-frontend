@@ -1,6 +1,6 @@
 // src/pages/UserManagementPage.js
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, Select, message } from "antd";
+import { Table, Button, Modal, Form, Input, Select, message, Switch } from "antd";
 import axios from "../services/axiosInstance";
 
 const { Option } = Select;
@@ -10,13 +10,16 @@ const UserManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("active");
   const [form] = Form.useForm();
 
   // Fetch Users
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("/api/users");
+      const response = await axios.get("/api/users", {
+        params: filterStatus === "all" ? {} : { active: filterStatus === "active" }
+      });
       setUsers(response.data);
     } catch (error) {
       message.error("Failed to load users.");
@@ -25,9 +28,23 @@ const UserManagementPage = () => {
     }
   };
 
+  const handleToggleStatus = async (user) => {
+    try {
+      await axios.put(`/api/users/${user._id}`, { isActive: !user.isActive });
+      message.success("Status updated.");
+      fetchUsers();
+    } catch {
+      message.error("Failed to update status.");
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [filterStatus]);
 
   // Handle Save (Add or Update)
   const handleSave = async (values) => {
@@ -50,17 +67,6 @@ const UserManagementPage = () => {
     }
   };
 
-  // Handle Delete
-  const handleDelete = async (userId) => {
-    try {
-      await axios.delete(`/api/users/${userId}`);
-      message.success("User deleted successfully.");
-      fetchUsers();
-    } catch (error) {
-      message.error("Failed to delete user.");
-    }
-  };
-
   // Show Modal for Add/Edit
   const showModal = (user) => {
     setEditingUser(user || null);
@@ -74,9 +80,20 @@ const UserManagementPage = () => {
 
   return (
     <div>
-      <Button type="primary" onClick={() => showModal(null)} style={{ marginBottom: 16 }}>
-        Add User
-      </Button>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+        <Button type="primary" onClick={() => showModal(null)}>
+          Add User
+        </Button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span>Status:</span>
+          <Select value={filterStatus} onChange={(val) => setFilterStatus(val)} style={{ width: 150 }}>
+            <Option value="all">All</Option>
+            <Option value="active">Active</Option>
+            <Option value="inactive">Inactive</Option>
+          </Select>
+        </div>
+      </div>
+
       <Table
         dataSource={users}
         rowKey="_id"
@@ -84,7 +101,7 @@ const UserManagementPage = () => {
         columns={[
           {
             title: "Name",
-            dataIndex: "name",
+            render: (_, record) => `${record.firstName} ${record.middleName || ""} ${record.lastName}`,
           },
           {
             title: "Email",
@@ -101,12 +118,22 @@ const UserManagementPage = () => {
                 <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
                   Edit
                 </Button>
-                <Button danger onClick={() => handleDelete(record._id)}>
-                  Delete
-                </Button>
               </div>
             ),
           },
+          {
+            title: "Status",
+            render: (_, record) => (
+              <Switch
+                checked={record.isActive}
+                checkedChildren="Active"
+                unCheckedChildren="Inactive"
+                onChange={() => handleToggleStatus(record)}
+              />
+            ),
+            fixed: "right",
+            width: 120,
+          }
         ]}
       />
       <Modal
@@ -116,13 +143,15 @@ const UserManagementPage = () => {
         onOk={() => form.submit()}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: "Please enter the name" }]}
-          >
-            <Input />
-          </Form.Item>
+        <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Enter first name" }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="middleName" label="Middle Name">
+          <Input />
+        </Form.Item>
+        <Form.Item name="lastName" label="Last Name" rules={[{ required: true, message: "Enter last name" }]}>
+          <Input />
+        </Form.Item>
           <Form.Item
             name="email"
             label="Email"

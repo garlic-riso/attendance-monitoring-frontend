@@ -141,7 +141,7 @@ const FacultyManagementPage = () => {
         columns={[
           {
             title: "Name",
-            dataIndex: "name",
+            render: (text, record) => `${record.firstName} ${record.middleName || ""} ${record.lastName}`,
           },
           {
             title: "Email",
@@ -188,13 +188,15 @@ const FacultyManagementPage = () => {
         onOk={() => form.submit()}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: "Please enter the name" }]}
-          >
-            <Input />
-          </Form.Item>
+        <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Enter first name" }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="middleName" label="Middle Name">
+          <Input />
+        </Form.Item>
+        <Form.Item name="lastName" label="Last Name" rules={[{ required: true, message: "Enter last name" }]}>
+          <Input />
+        </Form.Item>
           <Form.Item
             name="email"
             label="Email"

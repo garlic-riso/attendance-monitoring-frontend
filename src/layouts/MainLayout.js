@@ -62,7 +62,7 @@ const MainLayout = () => {
           <Dropdown menu={userMenu} trigger={["click"]}>
           <Space className="user-profile">
             <Avatar icon={<UserOutlined />} />
-            <span>{user?.fullName || user?.email || "User"}</span>
+            <span>{user?.name || user?.email || "User"}</span>
             <DownOutlined />
           </Space>
           </Dropdown>
