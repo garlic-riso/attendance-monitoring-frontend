@@ -1,7 +1,7 @@
 import React from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import "../styles/LoginPage.css";
-import logo from "../assets/images/logo.jpg";
+import logo from "../assets/images/logo.png";
 import axios from "../services/axiosInstance";
 import { useNavigate } from "react-router-dom";
 

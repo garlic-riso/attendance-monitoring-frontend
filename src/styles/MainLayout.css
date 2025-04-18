@@ -1,27 +1,45 @@
 /* src/styles/MainLayout.css */
 .layout-header {
-    background: #fff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 16px;
-  }
-  
-  .sider-logo {
-    height: 64px;
-    background: #001529;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 18px;
-  }
-  
-  .content {
-    margin: 16px;
-  }
-  
-  .user-profile {
-    cursor: pointer;
-  }
-  
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.ant-layout {
+  min-width: 0;
+}
+
+.sider-logo {
+  height: 70px;
+  background: #001529;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+}
+
+.content {
+  margin: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-profile {
+  cursor: pointer;
+}
+
+.content-scrollable {
+  flex: 1;
+  overflow: auto;
+}
+
+.logo-img {
+  max-height: 50px;
+  max-width: 100%;
+  object-fit: contain;
+}

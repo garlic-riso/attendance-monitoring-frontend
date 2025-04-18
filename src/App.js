@@ -20,7 +20,6 @@ function App() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<h1>Welcome to the Dashboard</h1>} />
           <Route path="/users" element={<UserManagementPage />} />
-          {/* <Route path="/schedules" element={<ScheduleManagementPage />} /> */}
           <Route path="/sections" element={<SectionManagementPage />} />
           <Route path="/faculty" element={<FacultyManagementPage />} />
           <Route path="/schedules" element={<SchedulePage />} />

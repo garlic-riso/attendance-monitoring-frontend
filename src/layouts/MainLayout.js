@@ -5,6 +5,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import "../styles/MainLayout.css";
 import { hasAccess } from "../utils/permissions";
 import { logout } from "../utils/auth";
+import logo from "../assets/images/logo.png";
 
 const { Header, Sider, Content } = Layout;
 
@@ -50,21 +51,26 @@ const MainLayout = () => {
   return (
     <Layout style={{ height: "100vh" }}>
       <Sider>
-        <div className="sider-logo">Logo</div>
+      <div className="sider-logo">
+        <img src={logo} alt="Logo" className="logo-img" />
+      </div>
         <Menu theme="dark" mode="inline" defaultSelectedKeys={["1"]} items={menuItems} />
       </Sider>
       <Layout>
         <Header className="layout-header">
           <div>Attendance Management</div>
           <Dropdown menu={userMenu} trigger={["click"]}>
-            <Space className="user-profile">
-              <Avatar icon={<UserOutlined />} />
-              <DownOutlined />
-            </Space>
+          <Space className="user-profile">
+            <Avatar icon={<UserOutlined />} />
+            <span>{user?.fullName || user?.email || "User"}</span>
+            <DownOutlined />
+          </Space>
           </Dropdown>
         </Header>
         <Content className="content">
-          <Outlet />
+          <div className="content-scrollable">
+            <Outlet />
+          </div>
         </Content>
       </Layout>
     </Layout>
