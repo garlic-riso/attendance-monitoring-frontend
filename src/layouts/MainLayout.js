@@ -1,5 +1,5 @@
-import React from "react";
-import { Layout, Menu, Dropdown, Avatar, Space } from "antd";
+import React, { useState } from "react";
+import { Layout, Menu, Dropdown, Avatar, Space, Tooltip } from "antd";
 import { DownOutlined, UserOutlined } from "@ant-design/icons";
 import { Outlet, useNavigate } from "react-router-dom";
 import "../styles/MainLayout.css";
@@ -10,6 +10,8 @@ import logo from "../assets/images/logo.png";
 const { Header, Sider, Content } = Layout;
 
 const MainLayout = () => {
+  const [collapsed, setCollapsed] = useState(false);
+  const toggleSidebar = () => setCollapsed(!collapsed);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user"));
@@ -50,21 +52,32 @@ const MainLayout = () => {
 
   return (
     <Layout style={{ height: "100vh" }}>
-      <Sider>
-      <div className="sider-logo">
-        <img src={logo} alt="Logo" className="logo-img" />
-      </div>
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        breakpoint="lg"
+        collapsedWidth={0}
+        trigger={null}
+      >
+        <div className="sider-logo">
+          <img src={logo} alt="Logo" className="logo-img" />
+        </div>
         <Menu theme="dark" mode="inline" defaultSelectedKeys={["1"]} items={menuItems} />
       </Sider>
       <Layout>
         <Header className="layout-header">
-          <div>Attendance Management</div>
+          <div className="header-left">
+            <Tooltip title="Toggle Menu">
+              <span className="system-title" onClick={toggleSidebar}>SMIS Attendance Monitoring System</span>
+            </Tooltip>
+          </div>
           <Dropdown menu={userMenu} trigger={["click"]}>
-          <Space className="user-profile">
-            <Avatar icon={<UserOutlined />} />
-            <span>{user?.name || user?.email || "User"}</span>
-            <DownOutlined />
-          </Space>
+            <Space className="user-profile">
+              <Avatar icon={<UserOutlined />} />
+              <span>{user?.name || user?.email || "User"}</span>
+              <DownOutlined />
+            </Space>
           </Dropdown>
         </Header>
         <Content className="content">
