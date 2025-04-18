@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Tabs, Table, Button, Select, Form, message, Spin } from "antd";
+import * as XLSX from "xlsx";
 import axios from "../services/axiosInstance";
 import ScheduleModal from "../components/ScheduleModal";
 
@@ -22,6 +23,10 @@ const SchedulePage = () => {
     academicYear: "2024-2025",
     quarter: "First",
   });
+
+  const fileInputRef = useRef(null);
+  const handleImportClick = () => fileInputRef.current.click();
+
 
   const fetchInitialData = useCallback(async () => {
     setLoading(true);
@@ -134,6 +139,53 @@ const SchedulePage = () => {
     }
   };
 
+  const handleCSVUpload = useCallback(async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    if (!filters.gradeLevel) {
+      message.error("Please select a section before importing.");
+      return;
+    }
+  
+    const section = sections.find((s) => s._id === filters.gradeLevel);
+    if (!section?.isActive) {
+      message.error("Cannot import to an inactive section.");
+      return;
+    }
+  
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  
+      try {
+        const response = await axios.post("/api/schedules/import", {
+          sectionID: filters.gradeLevel,
+          academicYear: filters.academicYear,
+          quarter: filters.quarter,
+          schedules: jsonData,
+        });
+        message.success(`Imported: ${response.data.successCount}, Skipped: ${response.data.errorCount}`);
+        fetchSchedules();
+      } catch (error) {
+        console.log(error);
+        message.error("Failed to import schedules.");
+      }
+    };
+  
+    reader.readAsArrayBuffer(file);
+  }, [filters, sections, fetchSchedules]);
+  
+  useEffect(() => {
+    const input = fileInputRef.current;
+    input?.addEventListener("change", handleCSVUpload);
+    return () => input?.removeEventListener("change", handleCSVUpload);
+  }, [filters, sections]);
+  
+
   const handleFilterChange = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
   const currentSection = sections.find((s) => s._id === filters.gradeLevel);
   const sectionName = currentSection ? `${currentSection.grade} - ${currentSection.name}` : "";
@@ -216,6 +268,14 @@ const SchedulePage = () => {
         ))}
       </div>
       <Button type="primary" onClick={handleCreate} style={{ marginBottom: 16 }}>Add Schedule</Button>
+      <Button onClick={handleImportClick}>Bulk Import</Button>
+        <input
+          type="file"
+          accept=".csv"
+          style={{ display: "none" }}
+          ref={fileInputRef}
+        />
+
       {loading ? <Spin size="large" /> : (
         <Tabs activeKey={currentTab} onChange={setCurrentTab} items={Object.entries(schedules).map(([day, list]) => ({
           label: day,
@@ -223,9 +283,12 @@ const SchedulePage = () => {
           children: (
             <Table
               bordered
-              dataSource={list.map((item, index) => ({
-                ...item,
-                key: item._id || index,
+              dataSource={list
+                .slice()
+                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                .map((item, index) => ({
+                  ...item,
+                  key: item._id || index,
               }))}
               columns={[
                 { title: "Start", dataIndex: "startTime", key: "startTime" },

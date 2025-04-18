@@ -23,7 +23,7 @@ const AttendancePage = () => {
 
   const [filters, setFilters] = useState({
     subject: "",
-    date: null,
+    date: moment(),
     section: "",
   });
 
@@ -93,7 +93,7 @@ const AttendancePage = () => {
         const section = searchParams.get("section") || "";
         const subject = searchParams.get("subject") || "";
         const dateParam = searchParams.get("date");
-        const date = dateParam ? moment(dateParam) : null;
+        const date = dateParam ? moment(dateParam) : moment();
   
         setFilters({ section, subject, date });
       } catch {
@@ -217,6 +217,12 @@ const AttendancePage = () => {
     <div style={{ padding: 20 }}>
       <h1>Attendance</h1>
       <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
+        <DatePicker
+          placeholder="Date and Time"
+          style={{ width: 200 }}
+          value={filters.date}
+          onChange={(date) => handleFilterChange("date", date)}
+        />
         <Select
           placeholder="Subject"
           style={{ width: 200 }}
@@ -227,12 +233,6 @@ const AttendancePage = () => {
             <Option key={_id} value={_id}>{subjectName}</Option>
           ))}
         </Select>
-        <DatePicker
-          placeholder="Date and Time"
-          style={{ width: 200 }}
-          value={filters.date}
-          onChange={(date) => handleFilterChange("date", date)}
-        />
         <Select
           placeholder="Section"
           style={{ width: 200 }}
