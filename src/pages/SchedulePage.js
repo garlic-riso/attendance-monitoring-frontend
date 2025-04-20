@@ -63,12 +63,15 @@ const SchedulePage = () => {
         params: { sectionID: gradeLevel, academicYear, quarter },
       }).then((res) => res.data);
 
-      setSchedules(
-        schedulesData.reduce((acc, schedule) => ({
-          ...acc,
-          [schedule.week]: [...(acc[schedule.week] || []), schedule], // Use API response directly
-        }), {})
-      );
+      const grouped = schedulesData.reduce((acc, schedule) => ({
+        ...acc,
+        [schedule.week]: [...(acc[schedule.week] || []), schedule],
+      }), {});
+      
+      setSchedules(grouped);
+      
+      const firstAvailableDay = Object.keys(grouped)[0];
+      if (firstAvailableDay) setCurrentTab(firstAvailableDay);
     } catch {
       message.error("Failed to fetch schedules.");
     } finally {
@@ -77,8 +80,56 @@ const SchedulePage = () => {
   }, [filters]);
 
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [sectionsData, subjectsData, teachersData] = await Promise.all([
+          axios.get("/api/sections").then((res) => res.data),
+          axios.get("/api/subjects").then((res) => res.data),
+          axios.get("/api/teachers").then((res) => res.data),
+        ]);
+  
+        setSections(sectionsData);
+        setSubjects(subjectsData);
+        setTeachers(teachersData);
+  
+        const saved = sessionStorage.getItem("scheduleFilters");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const validSection = sectionsData.some((s) => s._id === parsed.gradeLevel);
+  
+          if (validSection) {
+            setFilters(parsed);
+          } else {
+            setFilters({ gradeLevel: "", academicYear: "2024-2025", quarter: "First" });
+          }
+        } else {
+          // No session, use first active section if available
+          const first = sectionsData.find((s) => s.isActive);
+          setFilters({
+            gradeLevel: first?._id || "",
+            academicYear: "2024-2025",
+            quarter: "First",
+          });
+        }
+      } catch {
+        message.error("Failed to load initial data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    load();
+  }, []);
+  
+  
+
+  useEffect(() => {
+    if (filters.gradeLevel && filters.academicYear && filters.quarter) {
+      sessionStorage.setItem("scheduleFilters", JSON.stringify(filters));
+    }
+  }, [filters]);
+  
 
   useEffect(() => {
     fetchSchedules();
@@ -101,7 +152,14 @@ const SchedulePage = () => {
   
 
   const handleCreate = () => {
-    form.resetFields();
+    form.setFieldsValue({
+      sectionID: filters.gradeLevel,
+      academicYear: filters.academicYear,
+      quarter: filters.quarter,
+    });
+  
+    form.resetFields(['startTime', 'endTime', 'subjectID', 'classMode', 'week', 'room', 'teacherID']);
+  
     setEditingRecord(null);
     setIsCreateMode(true);
     setIsModalVisible(true);
@@ -127,6 +185,7 @@ const SchedulePage = () => {
 
       if (isCreateMode) {
         await axios.post("/api/schedules", values);
+        setCurrentTab(values.week);
       } else {
         await axios.put(`/api/schedules/${editingRecord.key}`, values);
       }
@@ -248,6 +307,11 @@ const SchedulePage = () => {
     <div style={{ padding: 20 }}>
       <h1>Grade-level Schedule</h1>
       <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
+        {!filters.gradeLevel && (
+          <div style={{ color: "red" }}>
+            Please select a section to view or add a schedule.
+          </div>
+        )}
         {[
           {
             key: "gradeLevel",
@@ -267,8 +331,10 @@ const SchedulePage = () => {
           </Select>
         ))}
       </div>
-      <Button type="primary" onClick={handleCreate} style={{ marginBottom: 16 }}>Add Schedule</Button>
-      <Button onClick={handleImportClick}>Bulk Import</Button>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        <Button type="primary" onClick={handleCreate}>Add Schedule</Button>
+        <Button onClick={handleImportClick}>Bulk Import</Button>
+      </div>
         <input
           type="file"
           accept=".csv"
@@ -277,38 +343,55 @@ const SchedulePage = () => {
         />
 
       {loading ? <Spin size="large" /> : (
-        <Tabs activeKey={currentTab} onChange={setCurrentTab} items={Object.entries(schedules).map(([day, list]) => ({
-          label: day,
-          key: day,
-          children: (
-            <Table
-              bordered
-              dataSource={list
-                .slice()
-                .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                .map((item, index) => ({
-                  ...item,
-                  key: item._id || index,
-              }))}
-              columns={[
-                { title: "Start", dataIndex: "startTime", key: "startTime" },
-                { title: "End", dataIndex: "endTime", key: "endTime" },
-                { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
-                { title: "Class Mode", dataIndex: "classMode", key: "classMode" },
-                { title: "Room", dataIndex: "room", key: "room" },
-                { title: "Teacher", dataIndex: "teacherName", key: "teacherName" },
-                { title: "Actions", key: "actions", render: (_, record) => (
-                  <>
-                    <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
-                    <Button type="link" danger onClick={() => handleDelete(record)}>Delete</Button>
-                  </>
-                ) },
-              ]}
-              pagination={false}
-            />
-          ),
-        }))} />
+        <Tabs
+          activeKey={currentTab}
+          onChange={setCurrentTab}
+          items={Object.entries(schedules)
+            .sort(([a], [b]) => {
+              const order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+              return order.indexOf(a) - order.indexOf(b);
+            })
+            .map(([day, list]) => ({
+              label: day,
+              key: day,
+              children: (
+                <Table
+                  bordered
+                  dataSource={list
+                    .slice()
+                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .map((item, index) => ({
+                      ...item,
+                      key: item._id || index,
+                      teacherName: item.teacherID?.firstName
+                        ? `${item.teacherID.firstName} ${item.teacherID.lastName}`
+                        : item.teacherName || "",
+                    }))}
+                  columns={[
+                    { title: "Start", dataIndex: "startTime", key: "startTime" },
+                    { title: "End", dataIndex: "endTime", key: "endTime" },
+                    { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
+                    { title: "Class Mode", dataIndex: "classMode", key: "classMode" },
+                    { title: "Room", dataIndex: "room", key: "room" },
+                    { title: "Teacher", dataIndex: "teacherName", key: "teacherName" },
+                    {
+                      title: "Actions",
+                      key: "actions",
+                      render: (_, record) => (
+                        <>
+                          <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
+                          <Button type="link" danger onClick={() => handleDelete(record)}>Delete</Button>
+                        </>
+                      ),
+                    },
+                  ]}
+                  pagination={false}
+                />
+              ),
+            }))}
+        />
       )}
+
       <ScheduleModal
         visible={isModalVisible}
         onCancel={() => setIsModalVisible(false)}

@@ -2,14 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Table, Button, Select, Form, message, Spin, DatePicker, Radio } from "antd";
 import axios from "../services/axiosInstance";
 import AttendanceModal from "../components/AttendanceModal";
-import moment from "moment";
+import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
 
-
 const statusOptions = ["Present", "Absent", "Tardy"];
-
-
 const { Option } = Select;
+const formatDate = (date) => date?.format("YYYY-MM-DD") || undefined;
 
 const AttendancePage = () => {
   const [attendance, setAttendance] = useState([]);
@@ -21,116 +19,119 @@ const AttendancePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [form] = Form.useForm();
 
-  const [filters, setFilters] = useState({
-    subject: "",
-    date: moment(),
-    section: "",
+  const [filters, setFilters] = useState(() => {
+    const stored = sessionStorage.getItem("attendanceFilters");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        subject: parsed.subject || "",
+        section: parsed.section || "",
+        date: parsed.date && dayjs(parsed.date, "YYYY-MM-DD", true).isValid()
+        ? dayjs(parsed.date, "YYYY-MM-DD")
+        : dayjs(),
+      };
+    }
+    return { subject: "", section: "", date: dayjs() };
   });
 
-  // const fetchInitialData = async () => {
-  //   const params = {
-  //     section: '6788ba4aa448dbda2cecfa98',
-  //     subject: '678e800624e320c5478fc98a',
-  //     date: moment("2025-03-11")
-  //   };
-
-  //   try {
-  //     setLoading(true);
-  //     const [{ data: subjectsData }, { data: sectionsData }] = await Promise.all([
-  //       axios.get("/api/subjects"),
-  //       axios.get("/api/sections"),
-  //     ]);
-  //     setSubjects(subjectsData);
-  //     setSections(sectionsData);
-  
-  //     const section = searchParams.get("section") || "";
-  //     const subject = searchParams.get("subject") || "";
-  //     const dateParam = searchParams.get("date");
-  //     const date = dateParam ? moment(dateParam) : null;
-  
-  //     setFilters({ section, subject, date });
-  //   } catch {
-  //     message.error("Failed to load data.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchInitialData = useCallback(async () => {
     try {
-      const { subject, date, section } = filters;
-  
-      const response = await axios.get("/api/attendance", {
-        params: {
-          subjectID: subject || undefined,
-          sectionID: section || undefined,
-          date: date ? date.format("YYYY-MM-DD") : undefined,
-        },
-      });
-      setAttendance(response.data.students || []);
-    } catch (error) {
+      setLoading(true);
+      const [{ data: subjectsData }, { data: sectionsData }] = await Promise.all([
+        axios.get("/api/subjects"),
+        axios.get("/api/sections"),
+      ]);
+      setSubjects(subjectsData.filter(s => s.isActive));
+      setSections(sectionsData.filter(s => s.isActive));
 
-      console.error("Error fetching attendance:", error.message);
-      message.error("Failed to load attendance data.");
-      setAttendance([]);
+      const storedFilters = JSON.parse(sessionStorage.getItem("attendanceFilters") || "{}");
+      const section = storedFilters.section || searchParams.get("section") || "";
+      const subject = storedFilters.subject || searchParams.get("subject") || "";
+      const dateRaw = storedFilters.date || searchParams.get("date");
+      const date = dayjs(dateRaw, "YYYY-MM-DD", true).isValid() ? dayjs(dateRaw) : dayjs();
+
+      if (
+        section !== filters.section ||
+        subject !== filters.subject ||
+        !filters.date?.isSame(date, "day")
+      ) {
+        setFilters({ section, subject, date });
+      }
+    } catch {
+      message.error("Failed to load data.");
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, searchParams]);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setLoading(true);
-        const [{ data: subjectsData }, { data: sectionsData }] = await Promise.all([
-          axios.get("/api/subjects"),
-          axios.get("/api/sections"),
-        ]);
-        setSubjects(subjectsData);
-        setSections(sectionsData);
-  
-        const section = searchParams.get("section") || "";
-        const subject = searchParams.get("subject") || "";
-        const dateParam = searchParams.get("date");
-        const date = dateParam ? moment(dateParam) : moment();
-  
-        setFilters({ section, subject, date });
-      } catch {
-        message.error("Failed to load data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-  
     fetchInitialData();
-  }, [searchParams]);
+  }, [fetchInitialData]);
 
   useEffect(() => {
     if (filters.subject && filters.section && filters.date) {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          const { subject, date, section } = filters;
+          const response = await axios.get("/api/attendance", {
+            params: {
+              subjectID: subject || undefined,
+              sectionID: section || undefined,
+              date: formatDate(date),
+            },
+          });
+          setAttendance(response.data.students || []);
+        } catch (error) {
+          console.error("Error fetching attendance:", error.message);
+          message.error("Failed to load attendance data.");
+          setAttendance([]);
+        } finally {
+          setLoading(false);
+        }
+      };
       fetchData();
     }
-  }, [fetchData, filters]);
+  }, [filters]);
+
+  const handleFilterChange = useCallback((key, value) => {
+    const newFilters = {
+      ...filters,
+      [key]: key === "date" && value ? dayjs(value) : value,
+    };
+
+    sessionStorage.setItem("attendanceFilters", JSON.stringify({
+      ...newFilters,
+      date: formatDate(newFilters.date),
+    }));
+
+    setFilters(newFilters);
+
+    const params = new URLSearchParams();
+    if (newFilters.section) params.set("section", newFilters.section);
+    if (newFilters.subject) params.set("subject", newFilters.subject);
+    if (newFilters.date) params.set("date", formatDate(newFilters.date));
+    setSearchParams(params);
+  }, [filters, setSearchParams]);
 
   const handleEdit = (record) => {
     setEditingRecord(record);
     form.setFieldsValue({
       ...record,
-      status: record.attendanceStatus, 
+      status: record.attendanceStatus,
     });
     setIsModalVisible(true);
   };
 
   const handleSave = async (values) => {
     const { attendanceID, scheduleID, _id } = editingRecord;
-  
     const payload = {
       ...values,
       studentID: _id,
       scheduleID,
-      date: filters.date?.format("YYYY-MM-DD"),
+      date: formatDate(filters.date),
     };
-  
+
     const updateAttendanceState = (data) => {
       setAttendance((prev) =>
         prev.map((s) =>
@@ -145,7 +146,7 @@ const AttendancePage = () => {
         )
       );
     };
-  
+
     try {
       if (attendanceID) {
         const { data } = await axios.put(`/api/attendance/${attendanceID}`, payload);
@@ -156,54 +157,36 @@ const AttendancePage = () => {
         updateAttendanceState(data);
         message.success("Attendance created successfully.");
       }
-  
       setIsModalVisible(false);
     } catch {
       message.error("Failed to save attendance.");
     }
   };
-  
-
-  const handleFilterChange = (key, value) => {
-    const updatedFilters = { ...filters, [key]: value };
-  
-    // Update filters state
-    setFilters(updatedFilters);
-  
-    // Update URL params
-    const params = new URLSearchParams();
-    if (updatedFilters.section) params.set("section", updatedFilters.section);
-    if (updatedFilters.subject) params.set("subject", updatedFilters.subject);
-    if (updatedFilters.date) params.set("date", updatedFilters.date.format("YYYY-MM-DD"));
-    setSearchParams(params);
-  };
 
   const handleStatusChange = async (studentId, newStatus) => {
-    setAttendance((prevAttendance) =>
-      prevAttendance.map((student) =>
+    setAttendance((prev) =>
+      prev.map((student) =>
         student._id === studentId ? { ...student, attendanceStatus: newStatus } : student
       )
     );
-  
+
     const student = attendance.find((s) => s._id === studentId);
     const attendanceID = student?.attendanceID;
-  
+
     const payload = {
       status: newStatus,
       studentID: studentId,
       scheduleID: student.scheduleID,
-      date: filters.date?.format("YYYY-MM-DD"),
+      date: formatDate(filters.date),
     };
-  
+
     try {
       if (attendanceID) {
         await axios.put(`/api/attendance/${attendanceID}`, payload);
       } else {
         const { data } = await axios.post("/api/attendance", payload);
         setAttendance((prev) =>
-          prev.map((s) =>
-            s._id === studentId ? { ...s, attendanceID: data._id } : s
-          )
+          prev.map((s) => (s._id === studentId ? { ...s, attendanceID: data._id } : s))
         );
       }
     } catch (error) {
@@ -212,13 +195,14 @@ const AttendancePage = () => {
     }
   };
 
-
   return (
     <div style={{ padding: 20 }}>
       <h1>Attendance</h1>
       <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
         <DatePicker
-          placeholder="Date and Time"
+          placeholder="Date"
+          allowClear={false}
+          format="YYYY-MM-DD"
           style={{ width: 200 }}
           value={filters.date}
           onChange={(date) => handleFilterChange("date", date)}
@@ -252,7 +236,7 @@ const AttendancePage = () => {
           dataSource={attendance.map((item, index) => ({
             ...item,
             key: item._id || index,
-            classMode: item.classMode || item.program || "N/A"
+            classMode: item.classMode || item.program || "N/A",
           }))}
           columns={[
             {
@@ -269,9 +253,7 @@ const AttendancePage = () => {
                   value={record.attendanceStatus}
                 >
                   {statusOptions.map((status) => (
-                    <Radio key={status} value={status}>
-                      {status}
-                    </Radio>
+                    <Radio key={status} value={status}>{status}</Radio>
                   ))}
                 </Radio.Group>
               ),

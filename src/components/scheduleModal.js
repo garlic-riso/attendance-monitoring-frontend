@@ -14,14 +14,7 @@ const ScheduleModal = ({
   filters,
   sectionName,
 }) => {
-  
-  useEffect(() => {
-    form.setFieldsValue({
-      sectionID: filters.gradeLevel,
-      academicYear: filters.academicYear,
-      quarter: filters.quarter,
-    });
-  }, [form, filters]);
+
 
   return (
     <Modal
@@ -36,15 +29,16 @@ const ScheduleModal = ({
     >
       <Form form={form} onFinish={onSave} layout="vertical">
         {/* Hidden Fields */}
-        <Form.Item name="sectionID" hidden>
-          <Input />
+        <Form.Item name="sectionID" noStyle>
+          <Input type="hidden" />
         </Form.Item>
-        <Form.Item name="academicYear" hidden>
-          <Input />
+        <Form.Item name="academicYear" noStyle>
+          <Input type="hidden" />
         </Form.Item>
-        <Form.Item name="quarter" hidden>
-          <Input />
+        <Form.Item name="quarter" noStyle>
+          <Input type="hidden" />
         </Form.Item>
+
 
         {/* Schedule Details */}
         <Form.Item label="Start Time" name="startTime" rules={[{ required: true, message: "Please select a start time" }]}>
@@ -82,7 +76,7 @@ const ScheduleModal = ({
           </Select>
         </Form.Item>
 
-        <Form.Item label="Room" name="room">
+        <Form.Item label="Room" name="room" rules={[{ required: true, message: "Please enter a room number" }]}>
           <Input placeholder="Enter room number" />
         </Form.Item>
 
@@ -90,7 +84,7 @@ const ScheduleModal = ({
           <Select placeholder="Select a teacher" showSearch optionFilterProp="children">
             {teachers.map((teacher) => (
               <Option key={teacher._id} value={teacher._id}>
-                {teacher.name}
+                {`${teacher.firstName} ${teacher.lastName}`}
               </Option>
             ))}
           </Select>
