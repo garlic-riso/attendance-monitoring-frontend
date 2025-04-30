@@ -17,43 +17,48 @@ const SchedulePage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [form] = Form.useForm();
+  const [schoolYears, setSchoolYears] = useState([]);
 
   const [filters, setFilters] = useState({
     gradeLevel: "",
-    academicYear: "2024-2025",
-    quarter: "First",
+    academicYear: "",
+    quarter: "",
   });
 
   const fileInputRef = useRef(null);
   const handleImportClick = () => fileInputRef.current.click();
 
-
-  const fetchInitialData = useCallback(async () => {
-    setLoading(true);
+  const fetchSchoolYears = async () => {
     try {
-      const [defaultSchedule, sectionsData, subjectsData, teachersData] = await Promise.all([
-        axios.get("/api/defaultSchedule").then((res) => res.data),
-        axios.get("/api/sections").then((res) => res.data),
-        axios.get("/api/subjects").then((res) => res.data),
-        axios.get("/api/teachers").then((res) => res.data),
-      ]);
-
-      setFilters((prev) => ({
-        ...prev,
-        gradeLevel: defaultSchedule.sectionId || "",
-        academicYear: defaultSchedule.academicYear || "2024-2025",
-        quarter: defaultSchedule.quarter || "First",
-      }));
-
-      setSections(sectionsData);
-      setSubjects(subjectsData);
-      setTeachers(teachersData);
+      const res = await axios.get("/api/school-years");
+      setSchoolYears(res.data);
+  
+      const current = res.data.find((sy) => sy.isCurrent);
+      if (current) {
+        setFilters((prev) => ({
+          ...prev,
+          academicYear: current.label,
+        }));
+      }
     } catch {
-      message.error("Failed to initialize data.");
-    } finally {
-      setLoading(false);
+      message.error("Failed to fetch school years.");
     }
-  }, []);
+  };
+  
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get("/api/settings");
+      const { currentQuarter } = res.data || {};
+      if (currentQuarter) {
+        setFilters((prev) => ({
+          ...prev,
+          quarter: currentQuarter,
+        }));
+      }
+    } catch {
+      message.error("Failed to fetch current quarter from settings.");
+    }
+  };
 
   const fetchSchedules = useCallback(async () => {
     setLoading(true);
@@ -88,47 +93,27 @@ const SchedulePage = () => {
           axios.get("/api/subjects").then((res) => res.data),
           axios.get("/api/teachers").then((res) => res.data),
         ]);
-  
+
         setSections(sectionsData);
         setSubjects(subjectsData);
         setTeachers(teachersData);
-  
-        const saved = sessionStorage.getItem("scheduleFilters");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const validSection = sectionsData.some((s) => s._id === parsed.gradeLevel);
-  
-          if (validSection) {
-            setFilters(parsed);
-          } else {
-            setFilters({ gradeLevel: "", academicYear: "2024-2025", quarter: "First" });
-          }
-        } else {
-          // No session, use first active section if available
-          const first = sectionsData.find((s) => s.isActive);
-          setFilters({
-            gradeLevel: first?._id || "",
-            academicYear: "2024-2025",
-            quarter: "First",
-          });
-        }
+        await fetchSchoolYears();
+        await fetchSettings();
+
+        const first = sectionsData.find((s) => s.isActive);
+        setFilters((prev) => ({
+          ...prev,
+          gradeLevel: first?._id || "",
+        }));
       } catch {
         message.error("Failed to load initial data.");
       } finally {
         setLoading(false);
       }
     };
-  
+
     load();
   }, []);
-  
-  
-
-  useEffect(() => {
-    if (filters.gradeLevel && filters.academicYear && filters.quarter) {
-      sessionStorage.setItem("scheduleFilters", JSON.stringify(filters));
-    }
-  }, [filters]);
   
 
   useEffect(() => {
@@ -321,7 +306,14 @@ const SchedulePage = () => {
               label: `${s.grade} - ${s.name}${s.isActive ? "" : " (Inactive)"}`
             }))
           },
-          { key: "academicYear", placeholder: "Academic Year", options: [{ value: "2024-2025", label: "2024-2025" }] },
+          {
+            key: "academicYear",
+            placeholder: "Academic Year",
+            options: schoolYears.map((sy) => ({
+              value: sy.label,
+              label: sy.label + (sy.isCurrent ? " (Current)" : ""),
+            })),
+          },          
           { key: "quarter", placeholder: "Quarter", options: ["First", "Second", "Third", "Fourth"].map((q) => ({ value: q, label: q })) },
         ].map(({ key, placeholder, options }) => (
           <Select key={key} placeholder={placeholder} style={{ width: 200 }} value={filters[key]} onChange={(value) => handleFilterChange(key, value)} loading={loading}>

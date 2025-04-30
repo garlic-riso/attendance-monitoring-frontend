@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { getToken } from "../utils/auth";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import "../styles/LoginPage.css";
 import logo from "../assets/images/logo.png";
@@ -8,6 +9,13 @@ import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = getToken();
+    if (token) {
+      navigate("/");
+    }
+  }, [navigate]);
 
 const handleLoginSuccess = async (credentialResponse) => {
   try {
