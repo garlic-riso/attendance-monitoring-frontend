@@ -18,15 +18,15 @@ const MainLayout = () => {
 
   const rawMenuItems = [
     { key: "1", label: "Dashboard", route: "/", resource: "dashboard" },
-    { key: "2", label: "User Management", route: "/users", resource: "users" },
     { key: "3", label: "Attendance", route: "/attendance", resource: "attendance" },
-    { key: "4", label: "Settings", route: "/settings", resource: "settings" }, // Settings menu item
     { key: "5", label: "Schedules", route: "/schedules", resource: "schedules" },
     { key: "6", label: "Sections", route: "/sections", resource: "sections" },
     { key: "7", label: "Subjects", route: "/subjects", resource: "subjects" },
+    { key: "4", label: "Settings", route: "/settings", resource: "settings" },
     { key: "8", label: "Faculty", route: "/faculty", resource: "faculty" },
     { key: "9", label: "Students", route: "/students", resource: "students" },
     { key: "10", label: "Parents", route: "/parents", resource: "parents" },
+    { key: "2", label: "Admin", route: "/users", resource: "users" },
   ];
 
   const menuItems = rawMenuItems

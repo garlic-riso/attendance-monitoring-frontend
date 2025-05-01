@@ -12,13 +12,21 @@ import StudentManagementPage from "./pages/StudentManagementPage";
 import ParentManagementPage from "./pages/ParentManagementPage";
 import AttendancePage from "./pages/AttendancePage";
 import SettingsPage from "./pages/SettingsPage";
+import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRoute
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<MainLayout />}>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<h1>Welcome to the Dashboard</h1>} />
           <Route path="/users" element={<UserManagementPage />} />
           <Route path="/sections" element={<SectionManagementPage />} />
