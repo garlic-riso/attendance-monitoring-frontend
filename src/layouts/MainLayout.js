@@ -27,6 +27,10 @@ const MainLayout = () => {
     { key: "9", label: "Students", route: "/students", resource: "students" },
     { key: "10", label: "Parents", route: "/parents", resource: "parents" },
     { key: "2", label: "Admin", route: "/users", resource: "users" },
+    { key: "11", label: "My Attendance", route: "/my-attendance", resource: "my-attendance" },
+    { key: "12", label: "My Schedule", route: "/my-schedule", resource: "my-schedule" },
+    { key: "14", label: "My Profile", route: "/my-profile", resource: "my-profile" },
+    { key: "15", label: "Child Attendance", route: "/parent-attendance", resource: "parent-attendance" },
   ];
 
   const menuItems = rawMenuItems

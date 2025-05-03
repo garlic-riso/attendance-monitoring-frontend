@@ -12,7 +12,14 @@ import StudentManagementPage from "./pages/StudentManagementPage";
 import ParentManagementPage from "./pages/ParentManagementPage";
 import AttendancePage from "./pages/AttendancePage";
 import SettingsPage from "./pages/SettingsPage";
-import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRoute
+import ProtectedRoute from "./components/ProtectedRoute";
+import DailyAttendanceReportPage from "./pages/DailyAttendanceReportPage";
+import StudentSchedulePage from "./pages/StudentSchedulePage";
+import StudentProfilePage from "./pages/StudentProfilePage";
+import { hasAccess } from "./utils/permissions";
+import StudentAttendancePage from "./pages/StudentAttendancePage";
+import ParentAttendancePage from "./pages/ParentAttendancePage";
+
 
 function App() {
   return (
@@ -27,7 +34,21 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<h1>Welcome to the Dashboard</h1>} />
+          <Route
+            index
+            element={
+              hasAccess(JSON.parse(localStorage.getItem("user"))?.role, "attendance") ? (
+                <DailyAttendanceReportPage />
+              ) : (
+                <div style={{ padding: "2rem" }}>
+                  <h2>Welcome</h2>
+                  <p>You're logged in as a {JSON.parse(localStorage.getItem("user"))?.role}.</p>
+                </div>
+              )
+            }
+          />
+          
+          {/* <Route path="/report/daily-attendance" element={<DailyAttendanceReportPage />} /> */}
           <Route path="/users" element={<UserManagementPage />} />
           <Route path="/sections" element={<SectionManagementPage />} />
           <Route path="/faculty" element={<FacultyManagementPage />} />
@@ -37,6 +58,10 @@ function App() {
           <Route path="/parents" element={<ParentManagementPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/my-attendance" element={<StudentAttendancePage />} />
+          <Route path="/my-schedule" element={<StudentSchedulePage />} />
+          <Route path="/my-profile" element={<StudentProfilePage />} />
+          <Route path="/parent-attendance" element={<ParentAttendancePage />} />
         </Route>
       </Routes>
     </Router>
