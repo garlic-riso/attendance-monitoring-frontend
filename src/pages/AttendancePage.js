@@ -5,7 +5,7 @@ import AttendanceModal from "../components/AttendanceModal";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
 
-const statusOptions = ["Present", "Absent", "Tardy"];
+const statusOptions = ["Present", "Absent", "Tardy", "Excused"];
 const { Option } = Select;
 const formatDate = (date) => date?.format("YYYY-MM-DD") || undefined;
 

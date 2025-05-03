@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Menu, Dropdown, Avatar, Space, Tooltip } from "antd";
 import { DownOutlined, UserOutlined } from "@ant-design/icons";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import "../styles/MainLayout.css";
 import { hasAccess } from "../utils/permissions";
 import { logout } from "../utils/auth";
@@ -13,6 +13,7 @@ const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed(!collapsed);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -42,6 +43,8 @@ const MainLayout = () => {
       onClick: () => navigate(item.route),
     }));
 
+  const selectedKey = rawMenuItems.find(item => item.route === location.pathname)?.key || "1";
+
   const userMenu = {
     items: [
       {
@@ -68,7 +71,12 @@ const MainLayout = () => {
         <div className="sider-logo">
           <img src={logo} alt="Logo" className="logo-img" />
         </div>
-        <Menu theme="dark" mode="inline" defaultSelectedKeys={["1"]} items={menuItems} />
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[selectedKey]}
+          items={menuItems}
+        />
       </Sider>
       <Layout>
         <Header className="layout-header">
