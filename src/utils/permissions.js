@@ -2,7 +2,7 @@
 
 export const rolePermissions = {
   admin: ["dashboard", "attendance", "schedules", "sections", "subjects", "users", "settings", "reports", "faculty", "students", "parents"],
-  faculty: ["attendance", "schedules", "sections", "students"],
+  faculty: ["dashboard", "attendance", "schedules", "sections", "students", "my-faculty-schedule"],
   student: ["my-profile", "my-schedule", "my-attendance"],
   parent: ["parent-attendance"],
 };

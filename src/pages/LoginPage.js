@@ -24,11 +24,17 @@ const handleLoginSuccess = async (credentialResponse) => {
     });
 
     const { token, user } = response.data;
+
+    // Save data to localStorage
     localStorage.setItem("accessToken", token);
     localStorage.setItem("user", JSON.stringify(user));
 
     console.log("Login successful:", user);
-    navigate("/");
+
+    // Ensure navigation happens after data is saved
+    setTimeout(() => {
+      navigate("/");
+    }, 1000);
   } catch (error) {
     console.error("Login failed:", error.response?.data?.message || "Unknown error");
   }

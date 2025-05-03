@@ -19,6 +19,9 @@ import StudentProfilePage from "./pages/StudentProfilePage";
 import { hasAccess } from "./utils/permissions";
 import StudentAttendancePage from "./pages/StudentAttendancePage";
 import ParentAttendancePage from "./pages/ParentAttendancePage";
+import HomePage from "./pages/HomePage";
+import FacultySchedulePage from "./pages/FacultySchedulePage";
+
 
 
 function App() {
@@ -34,21 +37,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route
-            index
-            element={
-              hasAccess(JSON.parse(localStorage.getItem("user"))?.role, "attendance") ? (
-                <DailyAttendanceReportPage />
-              ) : (
-                <div style={{ padding: "2rem" }}>
-                  <h2>Welcome</h2>
-                  <p>You're logged in as a {JSON.parse(localStorage.getItem("user"))?.role}.</p>
-                </div>
-              )
-            }
-          />
-          
-          {/* <Route path="/report/daily-attendance" element={<DailyAttendanceReportPage />} /> */}
+          <Route index element={<HomePage />} />
           <Route path="/users" element={<UserManagementPage />} />
           <Route path="/sections" element={<SectionManagementPage />} />
           <Route path="/faculty" element={<FacultyManagementPage />} />
@@ -62,6 +51,7 @@ function App() {
           <Route path="/my-schedule" element={<StudentSchedulePage />} />
           <Route path="/my-profile" element={<StudentProfilePage />} />
           <Route path="/parent-attendance" element={<ParentAttendancePage />} />
+          <Route path="/faculty-schedules" element={<FacultySchedulePage />} />
         </Route>
       </Routes>
     </Router>

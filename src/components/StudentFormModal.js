@@ -41,14 +41,16 @@ const StudentFormModal = ({ visible, onCancel, onSubmit, form, parents, sections
           <Select showSearch optionFilterProp="children">
             {editingStudent?.parentID && (
               <Option key={editingStudent.parentID._id} value={editingStudent.parentID._id} disabled>
-                {`${editingStudent.parentID.firstName} ${editingStudent.parentID.lastName}`} (Inactive)
+                {`${editingStudent.parentID.firstName} ${editingStudent.parentID.lastName}`} 
+                {editingStudent.parentID.isActive === false ? " (Inactive)" : ""}
               </Option>
             )}
             {parents
               .filter(p => !editingStudent?.parentID || p._id !== editingStudent.parentID._id)
               .map((parent) => (
                 <Option key={parent._id} value={parent._id}>
-                  {`${parent.firstName} ${parent.lastName}`}
+                  {`${parent.firstName} ${parent.lastName}`} 
+                  {parent.isActive === false ? " (Inactive)" : ""}
                 </Option>
               ))}
           </Select>

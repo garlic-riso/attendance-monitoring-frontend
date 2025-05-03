@@ -29,6 +29,7 @@ const MainLayout = () => {
     { key: "2", label: "Admin", route: "/users", resource: "users" },
     { key: "11", label: "My Attendance", route: "/my-attendance", resource: "my-attendance" },
     { key: "12", label: "My Schedule", route: "/my-schedule", resource: "my-schedule" },
+    { key: "16", label: "My Schedule", route: "/faculty-schedules", resource: "my-faculty-schedule" },
     { key: "14", label: "My Profile", route: "/my-profile", resource: "my-profile" },
     { key: "15", label: "Child Attendance", route: "/parent-attendance", resource: "parent-attendance" },
   ];
