@@ -7,7 +7,9 @@ import { UploadOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 
 
-const SectionManagementPage = () => {
+const SectionManagementPage = ({ userRole }) => {
+  const normalizedUserRole = userRole?.toLowerCase(); // Normalize userRole to lowercase
+
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -15,8 +17,14 @@ const SectionManagementPage = () => {
   const [selectedSection, setSelectedSection] = useState(null);
   const [students, setStudents] = useState([]);
   const [studentsModalVisible, setStudentsModalVisible] = useState(false);
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active");
   const [form] = Form.useForm();
+  const [addStudentModalVisible, setAddStudentModalVisible] = useState(false);
+  const [formAddStudent] = Form.useForm();
+  const [facultyOptions, setFacultyOptions] = useState([]);
+  const [unassignedStudents, setUnassignedStudents] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+
 
   // Fetch Sections
   const fetchSections = async () => {
@@ -28,6 +36,25 @@ const SectionManagementPage = () => {
       message.error("Failed to load sections.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUnassignedStudents = async () => {
+    try {
+      const response = await axios.get("/api/students/unassigned");
+      setUnassignedStudents(response.data);
+    } catch {
+      message.error("Failed to fetch unassigned students.");
+    }
+  };
+  
+
+  const fetchFaculty = async () => {
+    try {
+      const response = await axios.get("/api/teachers?active=true");
+      setFacultyOptions(response.data);
+    } catch {
+      message.error("Failed to fetch faculty list.");
     }
   };
 
@@ -43,18 +70,32 @@ const SectionManagementPage = () => {
   };
 
   useEffect(() => {
+    fetchFaculty();
     fetchSections();
   }, []);
+
+  const handleAddStudent = async (values) => {
+    try {
+      await axios.post(`/api/sections/${selectedSection._id}/students`, values);
+      message.success("Student added successfully.");
+      fetchStudents(selectedSection._id);
+      setAddStudentModalVisible(false);
+      formAddStudent.resetFields();
+    } catch (error) {
+      const msg =
+      error.response?.data?.error || error.response?.data?.message || "Failed to add student.";
+      message.error(msg);}
+  };
+  
+  
 
   // Handle Save (Add or Update)
   const handleSave = async (values) => {
     try {
       if (editingSection) {
-        // Update Section
         await axios.put(`/api/sections/${editingSection._id}`, values);
         message.success("Section updated successfully.");
       } else {
-        // Add Section
         await axios.post("/api/sections", values);
         message.success("Section added successfully.");
       }
@@ -63,20 +104,30 @@ const SectionManagementPage = () => {
       setEditingSection(null);
       form.resetFields();
     } catch (error) {
-      message.error("Failed to save section.");
-    }
+      const msg = error.response?.data?.message || "Failed to save section.";
+      if (msg.includes("Duplicate section name and grade combination")) {
+        message.error("A section with this name and grade already exists.");
+      } else {
+        message.error(msg);
+      }
+    }    
   };
+  
 
-  // Show Modal for Add/Edit
   const showModal = (section) => {
     setEditingSection(section || null);
     setIsModalVisible(true);
     if (section) {
-      form.setFieldsValue(section);
+      form.setFieldsValue({
+        name: section.name,
+        grade: section.grade,
+        advisorID: section.advisorID || null,
+      });
     } else {
       form.resetFields();
     }
   };
+  
 
   const handleRemoveStudent = async (studentId) => {
     try {
@@ -140,14 +191,16 @@ const SectionManagementPage = () => {
   return (
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Button type="primary" onClick={() => showModal(null)}>
-            Add Section
-          </Button>
-          <Upload accept=".csv, .xlsx" showUploadList={false} beforeUpload={handleBulkImport}>
-            <Button icon={<UploadOutlined />}>Bulk Import</Button>
-          </Upload>
-        </div>
+        {normalizedUserRole === "admin" && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button type="primary" onClick={() => showModal(null)}>
+              Add Section
+            </Button>
+            <Upload accept=".csv, .xlsx" showUploadList={false} beforeUpload={handleBulkImport}>
+              <Button icon={<UploadOutlined />}>Bulk Import</Button>
+            </Upload>
+          </div>
+        )}
         <div>
           <span style={{ marginRight: 8 }}>Filter by Status:</span>
           <Select value={filterStatus} onChange={setFilterStatus} style={{ width: 150 }}>
@@ -157,7 +210,6 @@ const SectionManagementPage = () => {
           </Select>
         </div>
       </div>
-
 
       <Table
         dataSource={
@@ -186,9 +238,11 @@ const SectionManagementPage = () => {
                 }} style={{ marginRight: 8 }}>
                   View Students
                 </Button>
-                <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
-                  Edit
-                </Button>
+                {normalizedUserRole === "admin" && (
+                  <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
+                    Edit
+                  </Button>
+                )}
               </div>
             ),
             fixed: "right",
@@ -202,6 +256,7 @@ const SectionManagementPage = () => {
                 onChange={() => handleToggleStatus(record)}
                 checkedChildren="Active"
                 unCheckedChildren="Inactive"
+                disabled={normalizedUserRole !== "admin"}
               />
             ),
             fixed: "right",
@@ -210,34 +265,17 @@ const SectionManagementPage = () => {
         ]}
       />
       <Modal
-        title={editingSection ? "Edit Section" : "Add Section"}
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        onOk={() => form.submit()}
-      >
-        <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item
-            name="name"
-            label="Section Name"
-            rules={[{ required: true, message: "Please enter the section name" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="grade"
-            label="Grade"
-            rules={[{ required: true, message: "Please enter the grade" }]}
-          >
-            <Input type="number" />
-          </Form.Item>
-        </Form>
-      </Modal>
-      <Modal
         title={`Students in ${selectedSection?.name}`}
         open={studentsModalVisible}
         onCancel={() => setStudentsModalVisible(false)}
         footer={null}
       >
+        <Button type="primary" onClick={() => {
+          fetchUnassignedStudents();
+          setAddStudentModalVisible(true);
+        }}>
+          Add Student
+        </Button>
         <Table
           dataSource={students}
           rowKey="_id"
@@ -254,7 +292,11 @@ const SectionManagementPage = () => {
             {
               title: "Actions",
               render: (_, record) => (
-                <Button danger onClick={() => handleRemoveStudent(record._id)}>
+                <Button
+                  type="link"
+                  danger
+                  onClick={() => handleRemoveStudent(record._id)}
+                >
                   Remove
                 </Button>
               ),
@@ -262,6 +304,68 @@ const SectionManagementPage = () => {
           ]}
         />
       </Modal>
+      <Modal
+        title="Add Student"
+        open={addStudentModalVisible}
+        onCancel={() => setAddStudentModalVisible(false)}
+        onOk={async () => {
+          if (!selectedStudentId) {
+            message.warning("Please select a student.");
+            return;
+          }
+          try {
+            await axios.put(`/api/students/${selectedStudentId}/assign`, {
+              sectionID: selectedSection._id,
+            });
+            message.success("Student assigned successfully.");
+            fetchStudents(selectedSection._id);
+            setAddStudentModalVisible(false);
+            setSelectedStudentId(null);
+          } catch (error) {
+            message.error("Failed to assign student.");
+          }
+        }}
+      >
+        <Select
+          style={{ width: "100%" }}
+          placeholder="Select a student"
+          onChange={value => setSelectedStudentId(value)}
+          value={selectedStudentId}
+        >
+          {unassignedStudents.map(student => (
+            <Select.Option key={student._id} value={student._id}>
+              {student.firstName} {student.lastName}
+            </Select.Option>
+          ))}
+        </Select>
+      </Modal>
+
+      <Modal
+        title={editingSection ? "Edit Section" : "Add Section"}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        onOk={() => form.submit()}
+      >
+        <Form form={form} layout="vertical" onFinish={handleSave}>
+          <Form.Item name="name" label="Section Name" rules={[{ required: true, message: "Please input the section name" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="grade" label="Grade Level" rules={[{ required: true, message: "Please input the grade level" }]}>
+            <Input type="number" />
+          </Form.Item>
+          <Form.Item name="advisorID" label="Faculty Adviser">
+            <Select allowClear placeholder="Select Adviser">
+              {facultyOptions.map(fac => (
+                <Select.Option key={fac._id} value={fac._id}>
+                  {fac.firstName} {fac.lastName}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+
     </div>
   );
 };

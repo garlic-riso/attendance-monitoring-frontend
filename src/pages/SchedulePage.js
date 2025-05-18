@@ -168,6 +168,11 @@ const SchedulePage = () => {
         return;
       }
 
+      // Make room optional for Online and Homeschooling modes
+      if (['Online', 'Homeschooling'].includes(values.classMode)) {
+        values.room = null;
+      }
+
       if (isCreateMode) {
         await axios.post("/api/schedules", values);
         setCurrentTab(values.week);
@@ -288,15 +293,22 @@ const SchedulePage = () => {
   }, [subjects, schedules]);
   
 
+  // Update classMode options in the form
+  const classModeOptions = [
+    { value: 'Online', label: 'Online' },
+    { value: 'Face-to-Face', label: 'Face-to-Face' },
+    { value: 'Homeschooling', label: 'Homeschooling' },
+  ];
+
   return (
     <div style={{ padding: 20 }}>
-      <h1>Grade-level Schedule</h1>
+      <h1>Class Schedule</h1>
       <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
-        {!filters.gradeLevel && (
+        {/* {!filters.gradeLevel && (
           <div style={{ color: "red" }}>
             Please select a section to view or add a schedule.
           </div>
-        )}
+        )} */}
         {[
           {
             key: "gradeLevel",
@@ -394,6 +406,7 @@ const SchedulePage = () => {
         teachers={teacherOptions}
         filters={filters}
         sectionName={sectionName}
+        classModeOptions={classModeOptions} // Pass updated options
       />
     </div>
   );

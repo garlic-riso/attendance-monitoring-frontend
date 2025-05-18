@@ -20,7 +20,8 @@ const MainLayout = () => {
   const rawMenuItems = [
     { key: "1", label: "Dashboard", route: "/", resource: "dashboard" },
     { key: "3", label: "Attendance", route: "/attendance", resource: "attendance" },
-    { key: "5", label: "Schedules", route: "/schedules", resource: "schedules" },
+    { key: "16", label: "My Schedule", route: "/faculty-schedules", resource: "my-faculty-schedule" },
+    { key: "5", label: "Class Schedule", route: "/schedules", resource: "schedules" },
     { key: "6", label: "Sections", route: "/sections", resource: "sections" },
     { key: "7", label: "Subjects", route: "/subjects", resource: "subjects" },
     { key: "4", label: "Settings", route: "/settings", resource: "settings" },
@@ -30,7 +31,7 @@ const MainLayout = () => {
     { key: "2", label: "Admin", route: "/users", resource: "users" },
     { key: "11", label: "My Attendance", route: "/my-attendance", resource: "my-attendance" },
     { key: "12", label: "My Schedule", route: "/my-schedule", resource: "my-schedule" },
-    { key: "16", label: "My Schedule", route: "/faculty-schedules", resource: "my-faculty-schedule" },
+    
     { key: "14", label: "My Profile", route: "/my-profile", resource: "my-profile" },
     { key: "15", label: "Child Attendance", route: "/parent-attendance", resource: "parent-attendance" },
   ];

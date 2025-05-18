@@ -6,7 +6,9 @@ import dayjs from "dayjs";
 import StudentFormModal from "../components/StudentFormModal";
 import * as XLSX from "xlsx";
 
-const StudentManagementPage = () => {
+const StudentManagementPage = ({ userRole }) => {
+  const normalizedUserRole = userRole?.toLowerCase(); // Normalize userRole to lowercase
+
   const [students, setStudents] = useState([]);
   const [parents, setParents] = useState([]);
   const [sections, setSections] = useState([]);
@@ -50,7 +52,6 @@ const StudentManagementPage = () => {
 
   // Handle Save (Add or Update)
   const handleSave = async (values) => {
-
     try {
       if (editingStudent) {
         await axios.put(`/api/students/${editingStudent._id}`, values);
@@ -93,7 +94,7 @@ const StudentManagementPage = () => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const data = evt.target.result;
@@ -101,7 +102,7 @@ const StudentManagementPage = () => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
+
       try {
         await axios.post("/api/students/bulk-import", jsonData);
         message.success("Bulk import successful.");
@@ -129,7 +130,6 @@ const StudentManagementPage = () => {
           message.error("Bulk import failed.");
         }
       }
-      
     };
     reader.readAsBinaryString(file);
   };
@@ -151,16 +151,20 @@ const StudentManagementPage = () => {
     { title: "Last Name", dataIndex: "lastName" },
     { title: "Email", dataIndex: "emailAddress" },
     { title: "Program", dataIndex: "program" },
-    {
-      title: "Actions",
-      render: (_, record) => (
-        <div>
-          <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
-            Edit
-          </Button>
-        </div>
-      ),
-    },
+    ...(normalizedUserRole === "admin"
+      ? [
+          {
+            title: "Actions",
+            render: (_, record) => (
+              <div>
+                <Button onClick={() => showModal(record)} style={{ marginRight: 8 }}>
+                  Edit
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       title: "Active",
       dataIndex: "isActive",
@@ -170,6 +174,7 @@ const StudentManagementPage = () => {
           onChange={() => handleToggleStatus(record)}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
+          disabled={normalizedUserRole !== "admin"}
         />
       ),
     },
@@ -178,24 +183,26 @@ const StudentManagementPage = () => {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button type="primary" onClick={() => showModal()}>
-            Add Student
-          </Button>
-          <input
-            type="file"
-            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-            style={{ display: "none" }}
-            id="bulkUpload"
-            onChange={handleFileUpload}
-          />
-          <Button
-            icon={<UploadOutlined />}
-            onClick={() => document.getElementById("bulkUpload").click()}
-          >
-            Bulk Import
-          </Button>
-        </div>
+        {normalizedUserRole === "admin" && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button type="primary" onClick={() => showModal()}>
+              Add Student
+            </Button>
+            <input
+              type="file"
+              accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+              style={{ display: "none" }}
+              id="bulkUpload"
+              onChange={handleFileUpload}
+            />
+            <Button
+              icon={<UploadOutlined />}
+              onClick={() => document.getElementById("bulkUpload").click()}
+            >
+              Bulk Import
+            </Button>
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontWeight: 500 }}>Filter by Status:</span>

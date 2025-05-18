@@ -13,15 +13,21 @@ const ScheduleModal = ({
   teachers,
   filters,
   sectionName,
+  classModeOptions, // Pass updated classMode options
 }) => {
-
+  // Dynamically update room validation based on classMode
+  const handleClassModeChange = (value) => {
+    if (value === "Online" || value === "Homeschooling") {
+      form.setFieldsValue({ room: null }); // Clear the room field
+    }
+  };
 
   return (
     <Modal
       title={
         isCreateMode
-        ? `Add Schedule for ${sectionName} - ${filters.quarter} Quarter - ${filters.academicYear}`
-        : "Edit Schedule"
+          ? `Add Schedule for ${sectionName} - ${filters.quarter} Quarter - ${filters.academicYear}`
+          : "Edit Schedule"
       }
       open={visible}
       onCancel={onCancel}
@@ -38,7 +44,6 @@ const ScheduleModal = ({
         <Form.Item name="quarter" noStyle>
           <Input type="hidden" />
         </Form.Item>
-
 
         {/* Schedule Details */}
         <Form.Item label="Start Time" name="startTime" rules={[{ required: true, message: "Please select a start time" }]}>
@@ -58,11 +63,20 @@ const ScheduleModal = ({
           </Select>
         </Form.Item>
 
-        <Form.Item label="Class Mode" name="classMode" rules={[{ required: true, message: "Please select a class mode" }]}>
-          <Select placeholder="Select class mode">
-            <Option value="Online">Online</Option>
-            <Option value="Face-to-Face">Face-to-Face</Option>
-            <Option value="Hybrid">Hybrid</Option>
+        <Form.Item
+          label="Class Mode"
+          name="classMode"
+          rules={[{ required: true, message: "Please select a class mode" }]}
+        >
+          <Select
+            placeholder="Select class mode"
+            onChange={handleClassModeChange} // Handle classMode change
+          >
+            {classModeOptions.map((option) => (
+              <Option key={option.value} value={option.value}>
+                {option.label}
+              </Option>
+            ))}
           </Select>
         </Form.Item>
 
@@ -76,7 +90,16 @@ const ScheduleModal = ({
           </Select>
         </Form.Item>
 
-        <Form.Item label="Room" name="room" rules={[{ required: true, message: "Please enter a room number" }]}>
+        <Form.Item
+          label="Room"
+          name="room"
+          rules={[
+            ({ getFieldValue }) => ({
+              required: !["Online", "Homeschooling"].includes(getFieldValue("classMode")),
+              message: "Please enter a room number",
+            }),
+          ]}
+        >
           <Input placeholder="Enter room number" />
         </Form.Item>
 

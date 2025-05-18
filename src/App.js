@@ -13,18 +13,19 @@ import ParentManagementPage from "./pages/ParentManagementPage";
 import AttendancePage from "./pages/AttendancePage";
 import SettingsPage from "./pages/SettingsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import DailyAttendanceReportPage from "./pages/DailyAttendanceReportPage";
 import StudentSchedulePage from "./pages/StudentSchedulePage";
 import StudentProfilePage from "./pages/StudentProfilePage";
 import { hasAccess } from "./utils/permissions";
 import StudentAttendancePage from "./pages/StudentAttendancePage";
 import ParentAttendancePage from "./pages/ParentAttendancePage";
-import HomePage from "./pages/HomePage";
 import FacultySchedulePage from "./pages/FacultySchedulePage";
-
-
+import HomePage from "./pages/HomePage";
+import { getUser } from "./utils/auth"; // Import getUser from auth.js
 
 function App() {
+  const user = getUser(); // Retrieve user information from local storage
+  const userRole = user?.role || "guest"; // Default to "guest" if no role is found
+
   return (
     <Router>
       <Routes>
@@ -39,11 +40,11 @@ function App() {
         >
           <Route index element={<HomePage />} />
           <Route path="/users" element={<UserManagementPage />} />
-          <Route path="/sections" element={<SectionManagementPage />} />
+          <Route path="/sections" element={<SectionManagementPage userRole={userRole} />} />
           <Route path="/faculty" element={<FacultyManagementPage />} />
           <Route path="/schedules" element={<SchedulePage />} />
           <Route path="/subjects" element={<SubjectsPage />} />
-          <Route path="/students" element={<StudentManagementPage />} />
+          <Route path="/students" element={<StudentManagementPage userRole={userRole} />} />
           <Route path="/parents" element={<ParentManagementPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/settings" element={<SettingsPage />} />
