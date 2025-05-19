@@ -217,12 +217,26 @@ const SchedulePage = () => {
           quarter: filters.quarter,
           schedules: jsonData,
         });
-        message.success(`Imported: ${response.data.successCount}, Skipped: ${response.data.errorCount}`);
+      
+        const { successCount, errorCount, skipped } = response.data;
+      
+        message.success(`Imported: ${successCount}, Skipped: ${errorCount}`);
+      
+        if (Array.isArray(skipped) && skipped.length > 0) {
+          console.group("Skipped Records during Import");
+          skipped.forEach((entry, index) => {
+            console.warn(`Skip #${index + 1} - Reason: ${entry.reason}`, entry.record);
+          });
+          console.groupEnd();
+        }
+      
         fetchSchedules();
       } catch (error) {
-        console.log(error);
-        message.error("Failed to import schedules.");
+        console.error("Import failed:", error);
+        const msg = error.response?.data?.message || "Failed to import schedules.";
+        message.error(msg);
       }
+      
     };
   
     reader.readAsArrayBuffer(file);

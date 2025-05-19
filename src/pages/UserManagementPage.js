@@ -1,5 +1,5 @@
 // src/pages/UserManagementPage.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Table, Button, Modal, Form, Input, Select, message, Switch } from "antd";
 import axios from "../services/axiosInstance";
 
@@ -14,7 +14,7 @@ const UserManagementPage = () => {
   const [form] = Form.useForm();
 
   // Fetch Users
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get("/api/users", {
@@ -26,7 +26,8 @@ const UserManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
+  
 
   const handleToggleStatus = async (user) => {
     try {
@@ -40,7 +41,7 @@ const UserManagementPage = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   useEffect(() => {
     fetchUsers();
@@ -49,13 +50,12 @@ const UserManagementPage = () => {
   // Handle Save (Add or Update)
   const handleSave = async (values) => {
     try {
+      const payload = { ...values, role: "Admin" };
       if (editingUser) {
-        // Update User
-        await axios.put(`/api/users/${editingUser._id}`, values);
+        await axios.put(`/api/users/${editingUser._id}`, payload);
         message.success("User updated successfully.");
       } else {
-        // Add User
-        await axios.post("/users", values);
+        await axios.post("/api/users", payload);
         message.success("User added successfully.");
       }
       fetchUsers();
@@ -66,6 +66,7 @@ const UserManagementPage = () => {
       message.error("Failed to save user.");
     }
   };
+  
 
   // Show Modal for Add/Edit
   const showModal = (user) => {
@@ -106,10 +107,6 @@ const UserManagementPage = () => {
           {
             title: "Email",
             dataIndex: "email",
-          },
-          {
-            title: "Role",
-            dataIndex: "role",
           },
           {
             title: "Actions",
@@ -161,12 +158,6 @@ const UserManagementPage = () => {
             ]}
           >
             <Input />
-          </Form.Item>
-          <Form.Item name="role" label="Role" rules={[{ required: true, message: "Please select a role" }]}>
-            <Select>
-              <Option value="Admin">Admin</Option>
-              <Option value="User">User</Option>
-            </Select>
           </Form.Item>
         </Form>
       </Modal>
