@@ -46,7 +46,8 @@ const FacultyManagementPage = () => {
       setEditingTeacher(null);
       form.resetFields();
     } catch (error) {
-      message.error("Failed to save teacher.");
+      const errorMsg = error.response?.data?.message || "Failed to save teacher.";
+      message.error(errorMsg);
     }
   };
 

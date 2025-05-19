@@ -94,7 +94,7 @@ const StudentManagementPage = ({ userRole }) => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+  
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const data = evt.target.result;
@@ -102,10 +102,34 @@ const StudentManagementPage = ({ userRole }) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
+  
       try {
-        await axios.post("/api/students/bulk-import", jsonData);
-        message.success("Bulk import successful.");
+        const res = await axios.post("/api/students/bulk-import", jsonData);
+        const {
+          insertedCount,
+          skippedDuplicates = [],
+          errorRecords = []
+        } = res.data;
+  
+        let msg = `${insertedCount} students successfully imported.\n`;
+  
+        if (skippedDuplicates.length > 0) {
+          msg += `\n⚠️ Skipped duplicates:\n${skippedDuplicates
+            .map((dup) => `Row ${dup.row}: ${dup.reason}`)
+            .join("\n")}`;
+        }
+  
+        if (errorRecords.length > 0) {
+          msg += `\n\n❌ Errors (Missing Parent/Section):\n${errorRecords
+            .map((err) => `Row ${err.row}: ${err.reason}`)
+            .join("\n")}`;
+        }
+  
+        message.success({
+          content: <pre style={{ whiteSpace: "pre-wrap" }}>{msg}</pre>,
+          duration: 6,
+        });
+  
         fetchData();
       } catch (err) {
         if (
@@ -115,8 +139,9 @@ const StudentManagementPage = ({ userRole }) => {
           Array.isArray(err.response.data.errors)
         ) {
           const errorDetails = err.response.data.errors
-            .map(e => `Row ${e.row}: Missing fields - ${e.missingFields.join(", ")}`)
+            .map((e) => `Row ${e.row}: Missing fields - ${e.missingFields.join(", ")}`)
             .join("\n");
+  
           message.error({
             content: (
               <div>
@@ -124,7 +149,7 @@ const StudentManagementPage = ({ userRole }) => {
                 <pre style={{ whiteSpace: "pre-wrap" }}>{errorDetails}</pre>
               </div>
             ),
-            duration: 4,
+            duration: 5,
           });
         } else {
           message.error("Bulk import failed.");
@@ -133,6 +158,7 @@ const StudentManagementPage = ({ userRole }) => {
     };
     reader.readAsBinaryString(file);
   };
+  
 
   const handleToggleStatus = async (student) => {
     try {
@@ -148,6 +174,7 @@ const StudentManagementPage = ({ userRole }) => {
 
   const columns = [
     { title: "First Name", dataIndex: "firstName" },
+    { title: "Middle Name", dataIndex: "middleName" },
     { title: "Last Name", dataIndex: "lastName" },
     { title: "Email", dataIndex: "emailAddress" },
     { title: "Program", dataIndex: "program" },

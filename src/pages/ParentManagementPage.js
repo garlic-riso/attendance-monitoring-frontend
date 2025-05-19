@@ -47,7 +47,7 @@ const ParentManagementPage = () => {
       setEditingParent(null);
       form.resetFields();
     } catch (error) {
-      message.error("Failed to save parent.");
+      message.error(error.response?.data?.message || "Failed to save parent.");
     }
   };
 
@@ -153,6 +153,7 @@ const ParentManagementPage = () => {
         loading={loading}
         columns={[
           { title: "First Name", dataIndex: "firstName" },
+          { title: "Middle Name", dataIndex: "middleName" },
           { title: "Last Name", dataIndex: "lastName" },
           { title: "Email", dataIndex: "emailAddress" },
           { title: "Contact Number", dataIndex: "contactNumber" },
@@ -187,6 +188,9 @@ const ParentManagementPage = () => {
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="middleName" label="Middle Name">
             <Input />
           </Form.Item>
           <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>

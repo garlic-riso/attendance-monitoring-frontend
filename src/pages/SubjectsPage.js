@@ -11,7 +11,7 @@ const SubjectsPage = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active");
 
   const [form] = Form.useForm();
 
@@ -43,7 +43,8 @@ const SubjectsPage = () => {
       fetchSubjects();
       handleCloseModal();
     } catch (error) {
-      message.error("Failed to save the subject. Please try again.");
+      const msg = error.response?.data?.message || "Failed to save the subject.";
+      message.error(msg);
     }
   };
 

@@ -13,7 +13,14 @@ const StudentFormModal = ({ visible, onCancel, onSubmit, form, parents, sections
     >
       <Form form={form} layout="vertical" onFinish={onSubmit}>
         <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
-          <Input />
+          <Input />  
+        </Form.Item>
+        <Form.Item
+          label="Middle Name"
+          name="middleName"
+          rules={[{ whitespace: true }]}
+        >
+          <Input placeholder="(optional)" />
         </Form.Item>
         <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>
           <Input />
