@@ -20,7 +20,9 @@ import StudentAttendancePage from "./pages/StudentAttendancePage";
 import ParentAttendancePage from "./pages/ParentAttendancePage";
 import FacultySchedulePage from "./pages/FacultySchedulePage";
 import HomePage from "./pages/HomePage";
+import AttendanceReportPage from "./pages/AttendanceReportPage";
 import { getUser } from "./utils/auth"; // Import getUser from auth.js
+import ReportsStudentBased from "./pages/ReportsStudentBased"; // <-- Add this import
 
 function App() {
   const user = getUser(); // Retrieve user information from local storage
@@ -53,6 +55,8 @@ function App() {
           <Route path="/my-profile" element={<StudentProfilePage />} />
           <Route path="/parent-attendance" element={<ParentAttendancePage />} />
           <Route path="/faculty-schedules" element={<FacultySchedulePage />} />
+          <Route path="/reports" element={<AttendanceReportPage />} />
+          <Route path="/reports-student-based" element={<ReportsStudentBased />} />
         </Route>
       </Routes>
     </Router>

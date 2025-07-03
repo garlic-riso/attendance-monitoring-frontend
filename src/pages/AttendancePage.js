@@ -119,17 +119,21 @@ const AttendancePage = () => {
     form.setFieldsValue({
       ...record,
       status: record.attendanceStatus,
+      classMode: record.classMode,
     });
     setIsModalVisible(true);
   };
 
   const handleSave = async (values) => {
-    const { attendanceID, scheduleID, _id } = editingRecord;
+    const { attendanceID, scheduleID, _id, classMode: recordClassMode, program } = editingRecord;
+    // Use the provided value, or fallback to record's classMode, or program, or "N/A"
+    const classMode = values.classMode || recordClassMode || program || "N/A";
     const payload = {
       ...values,
       studentID: _id,
       scheduleID,
       date: formatDate(filters.date),
+      classMode, // Ensure classMode is always set
     };
 
     const updateAttendanceState = (data) => {
@@ -141,6 +145,7 @@ const AttendancePage = () => {
                 ...values,
                 attendanceID: data._id,
                 attendanceStatus: values.status,
+                classMode, // Update local state as well
               }
             : s
         )
@@ -172,12 +177,15 @@ const AttendancePage = () => {
 
     const student = attendance.find((s) => s._id === studentId);
     const attendanceID = student?.attendanceID;
+    // Use student's classMode or program as fallback
+    const classMode = student?.classMode || student?.program || "N/A";
 
     const payload = {
       status: newStatus,
       studentID: studentId,
       scheduleID: student.scheduleID,
       date: formatDate(filters.date),
+      classMode, // Always set classMode
     };
 
     try {

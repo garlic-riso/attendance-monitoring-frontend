@@ -19,6 +19,25 @@ const MainLayout = () => {
 
   const rawMenuItems = [
     { key: "1", label: "Dashboard", route: "/", resource: "dashboard" },
+    {
+      key: "13",
+      label: "Reports",
+      resource: "reports",
+      children: [
+        {
+          key: "13-1",
+          label: "Subject-Based Report",
+          route: "/reports",
+          resource: "reports",
+        },
+        {
+          key: "13-2",
+          label: "Student-Based Report",
+          route: "/reports-student-based",
+          resource: "reports",
+        },
+      ],
+    },
     { key: "3", label: "Attendance", route: "/attendance", resource: "attendance" },
     { key: "16", label: "My Schedule", route: "/faculty-schedules", resource: "my-faculty-schedule" },
     { key: "5", label: "Class Schedule", route: "/schedules", resource: "schedules" },
@@ -31,20 +50,44 @@ const MainLayout = () => {
     { key: "2", label: "Admin", route: "/users", resource: "users" },
     { key: "11", label: "My Attendance", route: "/my-attendance", resource: "my-attendance" },
     { key: "12", label: "My Schedule", route: "/my-schedule", resource: "my-schedule" },
-    
     { key: "14", label: "My Profile", route: "/my-profile", resource: "my-profile" },
     { key: "15", label: "Child Attendance", route: "/parent-attendance", resource: "parent-attendance" },
   ];
 
-  const menuItems = rawMenuItems
-    .filter(item => !item.resource || hasAccess(user?.role, item.resource))
-    .map(item => ({
-      key: item.key,
-      label: item.label,
-      onClick: () => navigate(item.route),
-    }));
+  // Helper to recursively filter and map menu items
+  const filterAndMapMenuItems = (items) =>
+    items
+      .filter(item => !item.resource || hasAccess(user?.role, item.resource))
+      .map(item => {
+        if (item.children) {
+          return {
+            key: item.key,
+            label: item.label,
+            children: filterAndMapMenuItems(item.children),
+          };
+        }
+        return {
+          key: item.key,
+          label: item.label,
+          onClick: () => navigate(item.route),
+        };
+      });
 
-  const selectedKey = rawMenuItems.find(item => item.route === location.pathname)?.key || "1";
+  const menuItems = filterAndMapMenuItems(rawMenuItems);
+
+  // Find selected key, including nested children
+  const findSelectedKey = (items, pathname) => {
+    for (const item of items) {
+      if (item.route === pathname) return item.key;
+      if (item.children) {
+        const childKey = findSelectedKey(item.children, pathname);
+        if (childKey) return childKey;
+      }
+    }
+    return null;
+  };
+
+  const selectedKey = findSelectedKey(rawMenuItems, location.pathname) || "1";
 
   const userMenu = {
     items: [
@@ -62,6 +105,7 @@ const MainLayout = () => {
   return (
     <Layout style={{ height: "100vh" }}>
       <Sider
+        width={220}
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}

@@ -15,7 +15,7 @@ const StudentManagementPage = ({ userRole }) => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active");
   const [form] = Form.useForm();
 
   // Fetch Data

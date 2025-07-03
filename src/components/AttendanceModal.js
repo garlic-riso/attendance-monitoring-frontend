@@ -23,7 +23,7 @@ const AttendanceModal = ({ visible, onCancel, onSave, form }) => {
         <Form.Item name="classMode" label="Class Mode" rules={[{ required: true, message: "Please select a class mode" }]}>
           <Select placeholder="Select Class Mode">
             <Option value="Online">Online</Option>
-            <Option value="Homeschool">Homeschooling</Option>
+            <Option value="Homeschooling">Homeschooling</Option>
             <Option value="Face-to-Face">Face-to-Face</Option>
           </Select>
         </Form.Item>
